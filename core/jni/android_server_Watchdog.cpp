@@ -26,7 +26,7 @@
 
 #include "jni.h"
 #include "JNIHelp.h"
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 static void dumpOneStack(int tid, int outFd) {
     char buf[64];
@@ -106,7 +106,8 @@ static const JNINativeMethod g_methods[] = {
 };
 
 int register_android_server_Watchdog(JNIEnv* env) {
-    return RegisterMethodsOrDie(env, "com/android/server/Watchdog", g_methods, NELEM(g_methods));
+    return AndroidRuntime::registerNativeMethods(env, "com/android/server/Watchdog",
+                                                 g_methods, NELEM(g_methods));
 }
 
 }

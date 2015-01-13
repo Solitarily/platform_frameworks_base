@@ -44,8 +44,6 @@
 
 namespace android {
 
-static const bool kDebugGlyphs = false;
-
 // Our implementation of the callbacks which Harfbuzz requires by using Skia
 // calls. See the Harfbuzz source for references about what these callbacks do.
 
@@ -64,9 +62,9 @@ static void SkiaGetGlyphWidthAndExtents(SkPaint* paint, hb_codepoint_t codepoint
     uint16_t glyph = codepoint;
 
     paint->getTextWidths(&glyph, sizeof(glyph), &skWidth, &skBounds);
-    if (kDebugGlyphs) {
-        ALOGD("returned glyph for %i: width = %f", codepoint, skWidth);
-    }
+#if DEBUG_GLYPHS
+    ALOGD("returned glyph for %i: width = %f", codepoint, skWidth);
+#endif
     if (width)
         *width = SkScalarToHBFixed(skWidth);
     if (extents) {

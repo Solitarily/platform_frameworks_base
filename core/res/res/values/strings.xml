@@ -79,6 +79,14 @@
          for a note with no name. -->
     <string name="untitled">&lt;Untitled&gt;</string>
 
+    <!-- Used to replace a range of characters in text that is too wide
+         for the space allocated to it (three dots). -->
+    <string name="ellipsis">\u2026</string>
+
+    <!-- Used to replace a range of characters in text that is too wide
+         for the space allocated to it (two dots). -->
+    <string name="ellipsis_two_dots">\u2025</string>
+
     <!-- How to display the lack of a phone number -->
     <string name="emptyPhoneNumber">(No phone number)</string>
 
@@ -3499,6 +3507,9 @@
 
     <!-- [CHAR LIMIT=40] Title of dialog that is shown when performing a system upgrade. -->
     <string name="android_upgrading_title">Android is upgrading\u2026</string>
+
+    <!-- [CHAR LIMIT=NONE] Message shown in upgrading dialog when doing an fstrim. -->
+    <string name="android_upgrading_fstrim">Optimizing storage.</string>
 
     <!-- [CHAR LIMIT=NONE] Message shown in upgrading dialog for each .apk that is optimized. -->
     <string name="android_upgrading_apk">Optimizing app

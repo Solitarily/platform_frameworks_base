@@ -29,7 +29,7 @@
 
 #include <SkBitmap.h>
 
-#include "core_jni_helpers.h"
+#include "android_runtime/AndroidRuntime.h"
 
 #undef LOG_TAG
 #define LOG_TAG "OpenGLUtil"
@@ -471,13 +471,13 @@ static
 void multiplyMM(float* r, const float* lhs, const float* rhs)
 {
     for (int i=0 ; i<4 ; i++) {
-        const float rhs_i0 = rhs[ I(i,0) ];
-        float ri0 = lhs[ I(0,0) ] * rhs_i0;
-        float ri1 = lhs[ I(0,1) ] * rhs_i0;
-        float ri2 = lhs[ I(0,2) ] * rhs_i0;
-        float ri3 = lhs[ I(0,3) ] * rhs_i0;
+        register const float rhs_i0 = rhs[ I(i,0) ];
+        register float ri0 = lhs[ I(0,0) ] * rhs_i0;
+        register float ri1 = lhs[ I(0,1) ] * rhs_i0;
+        register float ri2 = lhs[ I(0,2) ] * rhs_i0;
+        register float ri3 = lhs[ I(0,3) ] * rhs_i0;
         for (int j=1 ; j<4 ; j++) {
-            const float rhs_ij = rhs[ I(i,j) ];
+            register const float rhs_ij = rhs[ I(i,j) ];
             ri0 += lhs[ I(j,0) ] * rhs_ij;
             ri1 += lhs[ I(j,1) ] * rhs_ij;
             ri2 += lhs[ I(j,2) ] * rhs_ij;
@@ -732,22 +732,24 @@ static jfieldID elementSizeShiftID;
 /* Cache method IDs each time the class is loaded. */
 
 static void
-nativeClassInitBuffer(JNIEnv *env)
+nativeClassInitBuffer(JNIEnv *_env)
 {
-    jclass nioAccessClassLocal = FindClassOrDie(env, "java/nio/NIOAccess");
-    nioAccessClass = MakeGlobalRefOrDie(env, nioAccessClassLocal);
-    getBasePointerID = GetStaticMethodIDOrDie(env, nioAccessClass,
-            "getBasePointer", "(Ljava/nio/Buffer;)J");
-    getBaseArrayID = GetStaticMethodIDOrDie(env, nioAccessClass,
-            "getBaseArray", "(Ljava/nio/Buffer;)Ljava/lang/Object;");
-    getBaseArrayOffsetID = GetStaticMethodIDOrDie(env, nioAccessClass,
-            "getBaseArrayOffset", "(Ljava/nio/Buffer;)I");
+    jclass nioAccessClassLocal = _env->FindClass("java/nio/NIOAccess");
+    nioAccessClass = (jclass) _env->NewGlobalRef(nioAccessClassLocal);
 
-    jclass bufferClassLocal = FindClassOrDie(env, "java/nio/Buffer");
-    bufferClass = MakeGlobalRefOrDie(env, bufferClassLocal);
-    positionID = GetFieldIDOrDie(env, bufferClass, "position", "I");
-    limitID = GetFieldIDOrDie(env, bufferClass, "limit", "I");
-    elementSizeShiftID = GetFieldIDOrDie(env, bufferClass, "_elementSizeShift", "I");
+    jclass bufferClassLocal = _env->FindClass("java/nio/Buffer");
+    bufferClass = (jclass) _env->NewGlobalRef(bufferClassLocal);
+
+    getBasePointerID = _env->GetStaticMethodID(nioAccessClass,
+            "getBasePointer", "(Ljava/nio/Buffer;)J");
+    getBaseArrayID = _env->GetStaticMethodID(nioAccessClass,
+            "getBaseArray", "(Ljava/nio/Buffer;)Ljava/lang/Object;");
+    getBaseArrayOffsetID = _env->GetStaticMethodID(nioAccessClass,
+            "getBaseArrayOffset", "(Ljava/nio/Buffer;)I");
+    positionID = _env->GetFieldID(bufferClass, "position", "I");
+    limitID = _env->GetFieldID(bufferClass, "limit", "I");
+    elementSizeShiftID =
+        _env->GetFieldID(bufferClass, "_elementSizeShift", "I");
 }
 
 static void *
@@ -757,6 +759,8 @@ getPointer(JNIEnv *_env, jobject buffer, jint *remaining)
     jint limit;
     jint elementSizeShift;
     jlong pointer;
+    jint offset;
+    void *data;
 
     position = _env->GetIntField(buffer, positionID);
     limit = _env->GetIntField(buffer, limitID);
@@ -896,8 +900,10 @@ static void etc1_encodeImage(JNIEnv *env, jclass clazz,
         } else if (outB.remaining() < encodedImageSize) {
             doThrowIAE(env, "out's remaining data < encoded image size");
         } else {
-            etc1_encode_image((etc1_byte*) inB.getData(), width, height, pixelSize, stride,
-                              (etc1_byte*) outB.getData());
+            int result = etc1_encode_image((etc1_byte*) inB.getData(),
+                    width, height, pixelSize,
+                    stride,
+                    (etc1_byte*) outB.getData());
         }
     }
 }
@@ -927,8 +933,10 @@ static void etc1_decodeImage(JNIEnv *env, jclass clazz,
         } else if (outB.remaining() < imageSize) {
             doThrowIAE(env, "out's remaining data < image size");
         } else {
-            etc1_decode_image((etc1_byte*) inB.getData(), (etc1_byte*) outB.getData(),
-                              width, height, pixelSize, stride);
+            int result = etc1_decode_image((etc1_byte*) inB.getData(),
+                    (etc1_byte*) outB.getData(),
+                    width, height, pixelSize,
+                    stride);
         }
     }
 }
@@ -1054,7 +1062,12 @@ int register_android_opengl_classes(JNIEnv* env)
     int result = 0;
     for (int i = 0; i < NELEM(gClasses); i++) {
         ClassRegistrationInfo* cri = &gClasses[i];
-        result = RegisterMethodsOrDie(env, cri->classPath, cri->methods, cri->methodCount);
+        result = AndroidRuntime::registerNativeMethods(env,
+                cri->classPath, cri->methods, cri->methodCount);
+        if (result < 0) {
+            ALOGE("Failed to register %s: %d", cri->classPath, result);
+            break;
+        }
     }
     return result;
 }

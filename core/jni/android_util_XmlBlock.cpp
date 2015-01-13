@@ -19,7 +19,7 @@
 
 #include "jni.h"
 #include "JNIHelp.h"
-#include <core_jni_helpers.h>
+#include <android_runtime/AndroidRuntime.h>
 #include <androidfw/AssetManager.h>
 #include <androidfw/ResourceTypes.h>
 #include <utils/Log.h>
@@ -267,20 +267,19 @@ static jint android_content_XmlBlock_nativeGetAttributeIndex(JNIEnv* env, jobjec
     const char16_t* ns16 = NULL;
     jsize nsLen = 0;
     if (ns) {
-        ns16 = reinterpret_cast<const char16_t*>(env->GetStringChars(ns, NULL));
+        ns16 = env->GetStringChars(ns, NULL);
         nsLen = env->GetStringLength(ns);
     }
 
-    const char16_t* name16 = reinterpret_cast<const char16_t*>(
-        env->GetStringChars(name, NULL));
+    const char16_t* name16 = env->GetStringChars(name, NULL);
     jsize nameLen = env->GetStringLength(name);
 
     jint idx = static_cast<jint>(st->indexOfAttribute(ns16, nsLen, name16, nameLen));
 
     if (ns) {
-        env->ReleaseStringChars(ns, reinterpret_cast<const jchar*>(ns16));
+        env->ReleaseStringChars(ns, ns16);
     }
-    env->ReleaseStringChars(name, reinterpret_cast<const jchar*>(name16));
+    env->ReleaseStringChars(name, name16);
 
     return idx;
 }
@@ -412,7 +411,7 @@ static JNINativeMethod gXmlBlockMethods[] = {
 
 int register_android_content_XmlBlock(JNIEnv* env)
 {
-    return RegisterMethodsOrDie(env,
+    return AndroidRuntime::registerNativeMethods(env,
             "android/content/res/XmlBlock", gXmlBlockMethods, NELEM(gXmlBlockMethods));
 }
 

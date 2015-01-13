@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _ANDROID_GRAPHICS_UTILS_H_
-#define _ANDROID_GRAPHICS_UTILS_H_
+#ifndef UTILS_DEFINED
+#define UTILS_DEFINED
 
 #include "SkStream.h"
 
@@ -89,4 +89,4 @@ jobject nullObjectReturn(const char msg[]);
 
 }; // namespace android
 
-#endif  // _ANDROID_GRAPHICS_UTILS_H_
+#endif

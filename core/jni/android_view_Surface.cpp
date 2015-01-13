@@ -23,7 +23,7 @@
 #include "android_os_Parcel.h"
 #include "android/graphics/GraphicsJNI.h"
 
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 #include <android_runtime/android_view_Surface.h>
 #include <android_runtime/android_graphics_SurfaceTexture.h>
 #include <android_runtime/Log.h>
@@ -319,7 +319,7 @@ static jlong nativeReadFromParcel(JNIEnv* env, jclass clazz,
     // update the Surface only if the underlying IGraphicBufferProducer
     // has changed.
     if (self != NULL
-            && (IInterface::asBinder(self->getIGraphicBufferProducer()) == binder)) {
+            && (self->getIGraphicBufferProducer()->asBinder() == binder)) {
         // same IGraphicBufferProducer, return ourselves
         return jlong(self.get());
     }
@@ -349,7 +349,7 @@ static void nativeWriteToParcel(JNIEnv* env, jclass clazz,
         return;
     }
     sp<Surface> self(reinterpret_cast<Surface *>(nativeObject));
-    parcel->writeStrongBinder( self != 0 ? IInterface::asBinder(self->getIGraphicBufferProducer()) : NULL);
+    parcel->writeStrongBinder( self != 0 ? self->getIGraphicBufferProducer()->asBinder() : NULL);
 }
 
 // ----------------------------------------------------------------------------
@@ -379,26 +379,26 @@ static JNINativeMethod gSurfaceMethods[] = {
 
 int register_android_view_Surface(JNIEnv* env)
 {
-    int err = RegisterMethodsOrDie(env, "android/view/Surface",
+    int err = AndroidRuntime::registerNativeMethods(env, "android/view/Surface",
             gSurfaceMethods, NELEM(gSurfaceMethods));
 
-    jclass clazz = FindClassOrDie(env, "android/view/Surface");
-    gSurfaceClassInfo.clazz = MakeGlobalRefOrDie(env, clazz);
-    gSurfaceClassInfo.mNativeObject = GetFieldIDOrDie(env,
-            gSurfaceClassInfo.clazz, "mNativeObject", "J");
-    gSurfaceClassInfo.mLock = GetFieldIDOrDie(env,
-            gSurfaceClassInfo.clazz, "mLock", "Ljava/lang/Object;");
-    gSurfaceClassInfo.ctor = GetMethodIDOrDie(env, gSurfaceClassInfo.clazz, "<init>", "(J)V");
+    jclass clazz = env->FindClass("android/view/Surface");
+    gSurfaceClassInfo.clazz = jclass(env->NewGlobalRef(clazz));
+    gSurfaceClassInfo.mNativeObject =
+            env->GetFieldID(gSurfaceClassInfo.clazz, "mNativeObject", "J");
+    gSurfaceClassInfo.mLock =
+            env->GetFieldID(gSurfaceClassInfo.clazz, "mLock", "Ljava/lang/Object;");
+    gSurfaceClassInfo.ctor = env->GetMethodID(gSurfaceClassInfo.clazz, "<init>", "(J)V");
 
-    clazz = FindClassOrDie(env, "android/graphics/Canvas");
-    gCanvasClassInfo.mSurfaceFormat = GetFieldIDOrDie(env, clazz, "mSurfaceFormat", "I");
-    gCanvasClassInfo.setNativeBitmap = GetMethodIDOrDie(env, clazz, "setNativeBitmap", "(J)V");
+    clazz = env->FindClass("android/graphics/Canvas");
+    gCanvasClassInfo.mSurfaceFormat = env->GetFieldID(clazz, "mSurfaceFormat", "I");
+    gCanvasClassInfo.setNativeBitmap = env->GetMethodID(clazz, "setNativeBitmap", "(J)V");
 
-    clazz = FindClassOrDie(env, "android/graphics/Rect");
-    gRectClassInfo.left = GetFieldIDOrDie(env, clazz, "left", "I");
-    gRectClassInfo.top = GetFieldIDOrDie(env, clazz, "top", "I");
-    gRectClassInfo.right = GetFieldIDOrDie(env, clazz, "right", "I");
-    gRectClassInfo.bottom = GetFieldIDOrDie(env, clazz, "bottom", "I");
+    clazz = env->FindClass("android/graphics/Rect");
+    gRectClassInfo.left = env->GetFieldID(clazz, "left", "I");
+    gRectClassInfo.top = env->GetFieldID(clazz, "top", "I");
+    gRectClassInfo.right = env->GetFieldID(clazz, "right", "I");
+    gRectClassInfo.bottom = env->GetFieldID(clazz, "bottom", "I");
 
     return err;
 }

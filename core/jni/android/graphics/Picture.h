@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_GRAPHICS_PICTURE_H_
-#define ANDROID_GRAPHICS_PICTURE_H_
+#ifndef ANDROID_GRAPHICS_PICTURE_H
+#define ANDROID_GRAPHICS_PICTURE_H
 
 #include "SkPicture.h"
 #include "SkPictureRecorder.h"
@@ -63,4 +63,4 @@ private:
 };
 
 }; // namespace android
-#endif // ANDROID_GRAPHICS_PICTURE_H_
+#endif // ANDROID_GRAPHICS_PICTURE_H

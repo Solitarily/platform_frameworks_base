@@ -22,7 +22,7 @@
 
 #include "jni.h"
 #include "GraphicsJNI.h"
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 #include "SkPath.h"
 #include "SkPathOps.h"
@@ -520,7 +520,9 @@ static JNINativeMethod methods[] = {
 };
 
 int register_android_graphics_Path(JNIEnv* env) {
-    return RegisterMethodsOrDie(env, "android/graphics/Path", methods, NELEM(methods));
+    int result = AndroidRuntime::registerNativeMethods(env, "android/graphics/Path", methods,
+        sizeof(methods) / sizeof(methods[0]));
+    return result;
 }
 
 }

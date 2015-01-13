@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _ANDROID_GRAPHICS_RTL_PROPERTIES_H_
-#define _ANDROID_GRAPHICS_RTL_PROPERTIES_H_
+#ifndef ANDROID_RTL_PROPERTIES_H
+#define ANDROID_RTL_PROPERTIES_H
 
 #include <cutils/properties.h>
 #include <stdlib.h>
@@ -45,5 +45,11 @@ static RtlDebugLevel readRtlDebugLevel() {
     return kRtlDebugDisabled;
 }
 
+// Define if we want (1) to have Advances debug values or not (0)
+#define DEBUG_ADVANCES 0
+
+// Define if we want (1) to have Glyphs debug values or not (0)
+#define DEBUG_GLYPHS 0
+
 } // namespace android
-#endif // _ANDROID_GRAPHICS_RTL_PROPERTIES_H_
+#endif // ANDROID_RTL_PROPERTIES_H

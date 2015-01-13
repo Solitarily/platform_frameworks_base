@@ -87,6 +87,7 @@ void ShadowTessellator::tessellateSpotShadow(bool isCasterOpaque,
     reverseReceiverTransform.loadInverse(receiverTransform);
     reverseReceiverTransform.mapPoint3d(adjustedLightCenter);
 
+    const int lightVertexCount = 8;
     if (CC_UNLIKELY(caches.propertyLightDiameter > 0)) {
         lightRadius = caches.propertyLightDiameter;
     }

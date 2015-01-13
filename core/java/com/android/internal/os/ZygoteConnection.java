@@ -16,11 +16,6 @@
 
 package com.android.internal.os;
 
-import static android.system.OsConstants.O_CLOEXEC;
-import static android.system.OsConstants.STDERR_FILENO;
-import static android.system.OsConstants.STDIN_FILENO;
-import static android.system.OsConstants.STDOUT_FILENO;
-
 import android.net.Credentials;
 import android.net.LocalSocket;
 import android.os.Process;
@@ -42,6 +37,8 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import libcore.io.IoUtils;
+import android.os.SystemClock;
+import android.util.Slog;
 
 /**
  * A connection that can make spawn requests.
@@ -96,7 +93,7 @@ class ZygoteConnection {
                 new InputStreamReader(socket.getInputStream()), 256);
 
         mSocket.setSoTimeout(CONNECTION_TIMEOUT_MILLIS);
-                
+
         try {
             peer = mSocket.getPeerCredentials();
         } catch (IOException ex) {
@@ -108,11 +105,23 @@ class ZygoteConnection {
     }
 
     /**
+     * Temporary hack: check time since start time and log if over a fixed threshold.
+     *
+     */
+    private void checkTime(long startTime, String where) {
+        long now = SystemClock.elapsedRealtime();
+        if ((now-startTime) > 1000) {
+            // If we are taking more than a second, log about it.
+            Slog.w(TAG, "Slow operation: " + (now-startTime) + "ms so far, now at " + where);
+        }
+    }
+
+    /**
      * Returns the file descriptor of the associated socket.
      *
      * @return null-ok; file descriptor
      */
-    FileDescriptor getFileDesciptor() {
+    FileDescriptor getFileDescriptor() {
         return mSocket.getFileDescriptor();
     }
 
@@ -136,6 +145,8 @@ class ZygoteConnection {
         Arguments parsedArgs = null;
         FileDescriptor[] descriptors;
 
+        long startTime = SystemClock.elapsedRealtime();
+
         try {
             args = readArgumentList();
             descriptors = mSocket.getAncillaryFileDescriptors();
@@ -145,6 +156,7 @@ class ZygoteConnection {
             return true;
         }
 
+        checkTime(startTime, "zygoteConnection.runOnce: readArgumentList");
         if (args == null) {
             // EOF reached.
             closeSocket();
@@ -176,13 +188,18 @@ class ZygoteConnection {
                         ", effective=0x" + Long.toHexString(parsedArgs.effectiveCapabilities));
             }
 
+
             applyUidSecurityPolicy(parsedArgs, peer, peerSecurityContext);
             applyRlimitSecurityPolicy(parsedArgs, peer, peerSecurityContext);
             applyInvokeWithSecurityPolicy(parsedArgs, peer, peerSecurityContext);
             applyseInfoSecurityPolicy(parsedArgs, peer, peerSecurityContext);
 
+            checkTime(startTime, "zygoteConnection.runOnce: apply security policies");
+
             applyDebuggerSystemProperty(parsedArgs);
             applyInvokeWithSystemProperty(parsedArgs);
+
+            checkTime(startTime, "zygoteConnection.runOnce: apply security policies");
 
             int[][] rlimits = null;
 
@@ -191,9 +208,10 @@ class ZygoteConnection {
             }
 
             if (parsedArgs.runtimeInit && parsedArgs.invokeWith != null) {
-                FileDescriptor[] pipeFds = Os.pipe2(O_CLOEXEC);
+                FileDescriptor[] pipeFds = Os.pipe();
                 childPipeFd = pipeFds[1];
                 serverPipeFd = pipeFds[0];
+                ZygoteInit.setCloseOnExec(serverPipeFd, true);
             }
 
             /**
@@ -224,10 +242,14 @@ class ZygoteConnection {
 
             fd = null;
 
+            checkTime(startTime, "zygoteConnection.runOnce: preForkAndSpecialize");
             pid = Zygote.forkAndSpecialize(parsedArgs.uid, parsedArgs.gid, parsedArgs.gids,
                     parsedArgs.debugFlags, rlimits, parsedArgs.mountExternal, parsedArgs.seInfo,
                     parsedArgs.niceName, fdsToClose, parsedArgs.instructionSet,
                     parsedArgs.appDataDir);
+            checkTime(startTime, "zygoteConnection.runOnce: postForkAndSpecialize");
+        } catch (IOException ex) {
+            logAndPrintError(newStderr, "Exception creating pipe", ex);
         } catch (ErrnoException ex) {
             logAndPrintError(newStderr, "Exception creating pipe", ex);
         } catch (IllegalArgumentException ex) {
@@ -598,7 +620,7 @@ class ZygoteConnection {
         }
 
         // See bug 1092107: large argc can be used for a DOS attack
-        if (argc > MAX_ZYGOTE_ARGC) {   
+        if (argc > MAX_ZYGOTE_ARGC) {
             throw new IOException("max arg count exceeded");
         }
 
@@ -615,7 +637,7 @@ class ZygoteConnection {
     }
 
     /**
-     * Applies zygote security policy per bugs #875058 and #1082165. 
+     * Applies zygote security policy per bugs #875058 and #1082165.
      * Based on the credentials of the process issuing a zygote command:
      * <ol>
      * <li> uid 0 (root) may specify any uid, gid, and setgroups() list
@@ -646,7 +668,7 @@ class ZygoteConnection {
             /* In normal operation, SYSTEM_UID can only specify a restricted
              * set of UIDs. In factory test mode, SYSTEM_UID may specify any uid.
              */
-            uidRestricted  
+            uidRestricted
                  = !(factoryTest.equals("1") || factoryTest.equals("2"));
 
             if (uidRestricted
@@ -859,15 +881,14 @@ class ZygoteConnection {
 
         if (descriptors != null) {
             try {
-                Os.dup2(descriptors[0], STDIN_FILENO);
-                Os.dup2(descriptors[1], STDOUT_FILENO);
-                Os.dup2(descriptors[2], STDERR_FILENO);
+                ZygoteInit.reopenStdio(descriptors[0],
+                        descriptors[1], descriptors[2]);
 
                 for (FileDescriptor fd: descriptors) {
                     IoUtils.closeQuietly(fd);
                 }
                 newStderr = System.err;
-            } catch (ErrnoException ex) {
+            } catch (IOException ex) {
                 Log.e(TAG, "Error reopening stdio", ex);
             }
         }
@@ -993,8 +1014,8 @@ class ZygoteConnection {
     private void setChildPgid(int pid) {
         // Try to move the new child into the peer's process group.
         try {
-            Os.setpgid(pid, Os.getpgid(peer.getPid()));
-        } catch (ErrnoException ex) {
+            ZygoteInit.setpgid(pid, ZygoteInit.getpgid(peer.getPid()));
+        } catch (IOException ex) {
             // This exception is expected in the case where
             // the peer is not in our session
             // TODO get rid of this log message in the case where

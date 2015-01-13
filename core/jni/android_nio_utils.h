@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _ANDROID_NIO_UTILS_H_
-#define _ANDROID_NIO_UTILS_H_
+#ifndef android_nio_utils_DEFINED
+#define android_nio_utils_DEFINED
 
 #include <android_runtime/AndroidRuntime.h>
 
@@ -58,16 +58,17 @@ class AutoBufferPointer {
 public:
     AutoBufferPointer(JNIEnv* env, jobject nioBuffer, jboolean commit);
     ~AutoBufferPointer();
-
+    
     void* pointer() const { return fPointer; }
-
+    
 private:
     JNIEnv* fEnv;
     void*   fPointer;
     jarray  fArray;
+    jint    fRemaining;
     jboolean fCommit;
 };
 
 }   /* namespace android */
 
-#endif  // _ANDROID_NIO_UTILS_H_
+#endif

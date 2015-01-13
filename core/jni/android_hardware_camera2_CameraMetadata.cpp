@@ -16,6 +16,7 @@
 */
 
 // #define LOG_NDEBUG 0
+// #define LOG_NNDEBUG 0
 #define LOG_TAG "CameraMetadata-JNI"
 #include <utils/Errors.h>
 #include <utils/Log.h>
@@ -28,7 +29,7 @@
 #include "jni.h"
 #include "JNIHelp.h"
 #include "android_os_Parcel.h"
-#include "core_jni_helpers.h"
+#include "android_runtime/AndroidRuntime.h"
 #include "android_runtime/android_hardware_camera2_CameraMetadata.h"
 
 #include <binder/IServiceManager.h>
@@ -41,7 +42,13 @@
 #include <sys/types.h> // for socketpair
 #include <sys/socket.h> // for socketpair
 
-static const bool kIsDebug = false;
+#if defined(LOG_NNDEBUG)
+#if !LOG_NNDEBUG
+#define ALOGVV ALOGV
+#endif
+#else
+#define ALOGVV(...)
+#endif
 
 // fully-qualified class name
 #define CAMERA_METADATA_CLASS_NAME "android/hardware/camera2/impl/CameraMetadataNative"
@@ -104,8 +111,8 @@ struct Helpers {
         size_t typeSize = getTypeSize(type);
 
         if (dataBytes % typeSize != 0) {
-            ALOGE("%s: Expected dataBytes (%zu) to be divisible by typeSize "
-                  "(%zu)", __FUNCTION__, dataBytes, typeSize);
+            ALOGE("%s: Expected dataBytes (%ud) to be divisible by typeSize "
+                  "(%ud)", __FUNCTION__, dataBytes, typeSize);
             return BAD_VALUE;
         }
 
@@ -212,7 +219,7 @@ static jboolean CameraMetadata_isEmpty(JNIEnv *env, jobject thiz) {
 
     jboolean empty = metadata->isEmpty();
 
-    ALOGV("%s: Empty returned %d, entry count was %zu",
+    ALOGV("%s: Empty returned %d, entry count was %d",
           __FUNCTION__, empty, metadata->entryCount());
 
     return empty;
@@ -308,6 +315,7 @@ static void CameraMetadata_writeValues(JNIEnv *env, jobject thiz, jint tag, jbyt
                              "Tag (%d) did not have a type", tag);
         return;
     }
+    size_t tagSize = Helpers::getTypeSize(tagType);
 
     status_t res;
 
@@ -589,7 +597,7 @@ static int find_fields(JNIEnv *env, field *fields, int count)
 int register_android_hardware_camera2_CameraMetadata(JNIEnv *env)
 {
     // Register native functions
-    return RegisterMethodsOrDie(env,
+    return AndroidRuntime::registerNativeMethods(env,
             CAMERA_METADATA_CLASS_NAME,
             gCameraMetadataMethods,
             NELEM(gCameraMetadataMethods));
@@ -609,7 +617,7 @@ static void CameraMetadata_classInit(JNIEnv *env, jobject thiz) {
     if (find_fields(env, fields_to_find, NELEM(fields_to_find)) < 0)
         return;
 
-    env->FindClass(CAMERA_METADATA_CLASS_NAME);
+    jclass clazz = env->FindClass(CAMERA_METADATA_CLASS_NAME);
 }
 
 static jint CameraMetadata_getTagFromKey(JNIEnv *env, jobject thiz, jstring keyName) {
@@ -643,15 +651,12 @@ static jint CameraMetadata_getTagFromKey(JNIEnv *env, jobject thiz, jstring keyN
 
         const char *str = (i < ANDROID_SECTION_COUNT) ? camera_metadata_section_names[i] :
                 vendorSections[i - ANDROID_SECTION_COUNT].string();
-        if (kIsDebug) {
-            ALOGV("%s: Trying to match against section '%s'", __FUNCTION__, str);
-        }
+        ALOGVV("%s: Trying to match against section '%s'",
+               __FUNCTION__, str);
         if (strstr(key, str) == key) { // key begins with the section name
             size_t strLength = strlen(str);
 
-            if (kIsDebug) {
-                ALOGV("%s: Key begins with section name", __FUNCTION__);
-            }
+            ALOGVV("%s: Key begins with section name", __FUNCTION__);
 
             // section name is the longest we've found so far
             if (section == NULL || sectionLength < strLength) {
@@ -659,9 +664,7 @@ static jint CameraMetadata_getTagFromKey(JNIEnv *env, jobject thiz, jstring keyN
                 sectionIndex = i;
                 sectionLength = strLength;
 
-                if (kIsDebug) {
-                    ALOGV("%s: Found new best section (%s)", __FUNCTION__, section);
-                }
+                ALOGVV("%s: Found new best section (%s)", __FUNCTION__, section);
             }
         }
     }
@@ -673,7 +676,7 @@ static jint CameraMetadata_getTagFromKey(JNIEnv *env, jobject thiz, jstring keyN
                              "Could not find section name for key '%s')", key);
         return 0;
     } else {
-        ALOGV("%s: Found matched section '%s' (%zu)",
+        ALOGV("%s: Found matched section '%s' (%d)",
               __FUNCTION__, section, sectionIndex);
     }
 

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef ANDROID_GRAPHICS_PAINT_H_
-#define ANDROID_GRAPHICS_PAINT_H_
+#ifndef ANDROID_GRAPHICS_PAINT_H
+#define ANDROID_GRAPHICS_PAINT_H
 
 #include <SkPaint.h>
 #include <string>
@@ -78,4 +78,4 @@ private:
 
 }  // namespace android
 
-#endif // ANDROID_GRAPHICS_PAINT_H_
+#endif // ANDROID_GRAPHICS_PAINT_H

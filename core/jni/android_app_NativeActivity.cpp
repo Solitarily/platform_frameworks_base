@@ -40,16 +40,11 @@
 
 #include "nativebridge/native_bridge.h"
 
-#include "core_jni_helpers.h"
-
-
 #define LOG_TRACE(...)
 //#define LOG_TRACE(...) ALOG(LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 namespace android
 {
-
-static const bool kLogTrace = false;
 
 static struct {
     jmethodID finish;
@@ -80,10 +75,8 @@ static void write_work(int fd, int32_t cmd, int32_t arg1=0, int32_t arg2=0) {
     work.cmd = cmd;
     work.arg1 = arg1;
     work.arg2 = arg2;
-
-    if (kLogTrace) {
-        ALOGD("write_work: cmd=%d", cmd);
-    }
+    
+    LOG_TRACE("write_work: cmd=%d", cmd);
 
 restart:
     int res = write(fd, &work, sizeof(work));
@@ -213,9 +206,7 @@ static int mainWorkCallback(int fd, int events, void* data) {
         return 1;
     }
 
-    if (kLogTrace) {
-        ALOGD("mainWorkCallback: cmd=%d", work.cmd);
-    }
+    LOG_TRACE("mainWorkCallback: cmd=%d", work.cmd);
 
     switch (work.cmd) {
         case CMD_FINISH: {
@@ -258,9 +249,7 @@ loadNativeCode_native(JNIEnv* env, jobject clazz, jstring path, jstring funcName
         jstring externalDataDir, jint sdkVersion,
         jobject jAssetMgr, jbyteArray savedState)
 {
-    if (kLogTrace) {
-        ALOGD("loadNativeCode_native");
-    }
+    LOG_TRACE("loadNativeCode_native");
 
     const char* pathStr = env->GetStringUTFChars(path, NULL);
     NativeCode* code = NULL;
@@ -369,9 +358,7 @@ loadNativeCode_native(JNIEnv* env, jobject clazz, jstring path, jstring funcName
 static void
 unloadNativeCode_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("unloadNativeCode_native");
-    }
+    LOG_TRACE("unloadNativeCode_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         delete code;
@@ -381,9 +368,7 @@ unloadNativeCode_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onStart_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onStart_native");
-    }
+    LOG_TRACE("onStart_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onStart != NULL) {
@@ -395,9 +380,7 @@ onStart_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onResume_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onResume_native");
-    }
+    LOG_TRACE("onResume_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onResume != NULL) {
@@ -409,9 +392,7 @@ onResume_native(JNIEnv* env, jobject clazz, jlong handle)
 static jbyteArray
 onSaveInstanceState_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onSaveInstanceState_native");
-    }
+    LOG_TRACE("onSaveInstanceState_native");
 
     jbyteArray array = NULL;
 
@@ -438,9 +419,7 @@ onSaveInstanceState_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onPause_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onPause_native");
-    }
+    LOG_TRACE("onPause_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onPause != NULL) {
@@ -452,9 +431,7 @@ onPause_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onStop_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onStop_native");
-    }
+    LOG_TRACE("onStop_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onStop != NULL) {
@@ -466,9 +443,7 @@ onStop_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onConfigurationChanged_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onConfigurationChanged_native");
-    }
+    LOG_TRACE("onConfigurationChanged_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onConfigurationChanged != NULL) {
@@ -480,9 +455,7 @@ onConfigurationChanged_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onLowMemory_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onLowMemory_native");
-    }
+    LOG_TRACE("onLowMemory_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onLowMemory != NULL) {
@@ -494,9 +467,7 @@ onLowMemory_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onWindowFocusChanged_native(JNIEnv* env, jobject clazz, jlong handle, jboolean focused)
 {
-    if (kLogTrace) {
-        ALOGD("onWindowFocusChanged_native");
-    }
+    LOG_TRACE("onWindowFocusChanged_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onWindowFocusChanged != NULL) {
@@ -508,9 +479,7 @@ onWindowFocusChanged_native(JNIEnv* env, jobject clazz, jlong handle, jboolean f
 static void
 onSurfaceCreated_native(JNIEnv* env, jobject clazz, jlong handle, jobject surface)
 {
-    if (kLogTrace) {
-        ALOGD("onSurfaceCreated_native");
-    }
+    LOG_TRACE("onSurfaceCreated_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         code->setSurface(surface);
@@ -531,9 +500,7 @@ static void
 onSurfaceChanged_native(JNIEnv* env, jobject clazz, jlong handle, jobject surface,
         jint format, jint width, jint height)
 {
-    if (kLogTrace) {
-        ALOGD("onSurfaceChanged_native");
-    }
+    LOG_TRACE("onSurfaceChanged_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         sp<ANativeWindow> oldNativeWindow = code->nativeWindow;
@@ -573,9 +540,7 @@ onSurfaceChanged_native(JNIEnv* env, jobject clazz, jlong handle, jobject surfac
 static void
 onSurfaceRedrawNeeded_native(JNIEnv* env, jobject clazz, jlong handle)
 {
-    if (kLogTrace) {
-        ALOGD("onSurfaceRedrawNeeded_native");
-    }
+    LOG_TRACE("onSurfaceRedrawNeeded_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->nativeWindow != NULL && code->callbacks.onNativeWindowRedrawNeeded != NULL) {
@@ -587,9 +552,7 @@ onSurfaceRedrawNeeded_native(JNIEnv* env, jobject clazz, jlong handle)
 static void
 onSurfaceDestroyed_native(JNIEnv* env, jobject clazz, jlong handle, jobject surface)
 {
-    if (kLogTrace) {
-        ALOGD("onSurfaceDestroyed_native");
-    }
+    LOG_TRACE("onSurfaceDestroyed_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->nativeWindow != NULL && code->callbacks.onNativeWindowDestroyed != NULL) {
@@ -603,9 +566,7 @@ onSurfaceDestroyed_native(JNIEnv* env, jobject clazz, jlong handle, jobject surf
 static void
 onInputQueueCreated_native(JNIEnv* env, jobject clazz, jlong handle, jlong queuePtr)
 {
-    if (kLogTrace) {
-        ALOGD("onInputChannelCreated_native");
-    }
+    LOG_TRACE("onInputChannelCreated_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onInputQueueCreated != NULL) {
@@ -618,9 +579,7 @@ onInputQueueCreated_native(JNIEnv* env, jobject clazz, jlong handle, jlong queue
 static void
 onInputQueueDestroyed_native(JNIEnv* env, jobject clazz, jlong handle, jlong queuePtr)
 {
-    if (kLogTrace) {
-        ALOGD("onInputChannelDestroyed_native");
-    }
+    LOG_TRACE("onInputChannelDestroyed_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onInputQueueDestroyed != NULL) {
@@ -634,9 +593,7 @@ static void
 onContentRectChanged_native(JNIEnv* env, jobject clazz, jlong handle,
         jint x, jint y, jint w, jint h)
 {
-    if (kLogTrace) {
-        ALOGD("onContentRectChanged_native");
-    }
+    LOG_TRACE("onContentRectChanged_native");
     if (handle != 0) {
         NativeCode* code = (NativeCode*)handle;
         if (code->callbacks.onContentRectChanged != NULL) {
@@ -675,20 +632,39 @@ static const JNINativeMethod g_methods[] = {
 
 static const char* const kNativeActivityPathName = "android/app/NativeActivity";
 
+#define FIND_CLASS(var, className) \
+        var = env->FindClass(className); \
+        LOG_FATAL_IF(! var, "Unable to find class %s", className);
+
+#define GET_METHOD_ID(var, clazz, methodName, fieldDescriptor) \
+        var = env->GetMethodID(clazz, methodName, fieldDescriptor); \
+        LOG_FATAL_IF(! var, "Unable to find method" methodName);
+        
 int register_android_app_NativeActivity(JNIEnv* env)
 {
     //ALOGD("register_android_app_NativeActivity");
-    jclass clazz = FindClassOrDie(env, kNativeActivityPathName);
+    jclass clazz;
+    FIND_CLASS(clazz, kNativeActivityPathName);
 
-    gNativeActivityClassInfo.finish = GetMethodIDOrDie(env, clazz, "finish", "()V");
-    gNativeActivityClassInfo.setWindowFlags = GetMethodIDOrDie(env, clazz, "setWindowFlags",
-                                                               "(II)V");
-    gNativeActivityClassInfo.setWindowFormat = GetMethodIDOrDie(env, clazz, "setWindowFormat",
-                                                                "(I)V");
-    gNativeActivityClassInfo.showIme = GetMethodIDOrDie(env, clazz, "showIme", "(I)V");
-    gNativeActivityClassInfo.hideIme = GetMethodIDOrDie(env, clazz, "hideIme", "(I)V");
+    GET_METHOD_ID(gNativeActivityClassInfo.finish,
+            clazz,
+            "finish", "()V");
+    GET_METHOD_ID(gNativeActivityClassInfo.setWindowFlags,
+            clazz,
+            "setWindowFlags", "(II)V");
+    GET_METHOD_ID(gNativeActivityClassInfo.setWindowFormat,
+            clazz,
+            "setWindowFormat", "(I)V");
+    GET_METHOD_ID(gNativeActivityClassInfo.showIme,
+            clazz,
+            "showIme", "(I)V");
+    GET_METHOD_ID(gNativeActivityClassInfo.hideIme,
+            clazz,
+            "hideIme", "(I)V");
 
-    return RegisterMethodsOrDie(env, kNativeActivityPathName, g_methods, NELEM(g_methods));
+    return AndroidRuntime::registerNativeMethods(
+        env, kNativeActivityPathName,
+        g_methods, NELEM(g_methods));
 }
 
 } // namespace android

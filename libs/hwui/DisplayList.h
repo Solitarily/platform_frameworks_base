@@ -82,7 +82,7 @@ public:
     LinearAllocator * const mAllocator;
 
     SkPath* allocPathForFrame() {
-        mTempPaths.push_back(SkPath());
+        mTempPaths.push_back();
         return &mTempPaths.back();
     }
 
@@ -91,7 +91,8 @@ private:
     std::vector<SkPath> mTempPaths;
 };
 
-struct DeferStateStruct : public PlaybackStateStruct {
+class DeferStateStruct : public PlaybackStateStruct {
+public:
     DeferStateStruct(DeferredDisplayList& deferredList, OpenGLRenderer& renderer, int replayFlags)
             : PlaybackStateStruct(renderer, replayFlags, &(deferredList.mAllocator)),
             mDeferredList(deferredList) {}

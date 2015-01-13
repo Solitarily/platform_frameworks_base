@@ -41,12 +41,20 @@ static struct parcel_file_descriptor_offsets_t
     jmethodID mConstructor;
 } gParcelFileDescriptorOffsets;
 
+static void checkAndClearExceptionFromCallback(JNIEnv* env, const char* methodName) {
+    if (env->ExceptionCheck()) {
+        ALOGE("An exception was thrown by callback '%s'.", methodName);
+        LOGE_EX(env);
+        env->ExceptionClear();
+    }
+}
+
 static void set_accessory_string(JNIEnv *env, int fd, int cmd, jobjectArray strArray, int index)
 {
     char buffer[256];
 
     buffer[0] = 0;
-    ioctl(fd, cmd, buffer);
+    int length = ioctl(fd, cmd, buffer);
     if (buffer[0]) {
         jstring obj = env->NewStringUTF(buffer);
         env->SetObjectArrayElement(strArray, index, obj);
@@ -55,8 +63,7 @@ static void set_accessory_string(JNIEnv *env, int fd, int cmd, jobjectArray strA
 }
 
 
-static jobjectArray android_server_UsbDeviceManager_getAccessoryStrings(JNIEnv *env,
-                                                                        jobject /* thiz */)
+static jobjectArray android_server_UsbDeviceManager_getAccessoryStrings(JNIEnv *env, jobject thiz)
 {
     int fd = open(DRIVER_NAME, O_RDWR);
     if (fd < 0) {
@@ -78,7 +85,7 @@ out:
     return strArray;
 }
 
-static jobject android_server_UsbDeviceManager_openAccessory(JNIEnv *env, jobject /* thiz */)
+static jobject android_server_UsbDeviceManager_openAccessory(JNIEnv *env, jobject thiz)
 {
     int fd = open(DRIVER_NAME, O_RDWR);
     if (fd < 0) {
@@ -93,8 +100,7 @@ static jobject android_server_UsbDeviceManager_openAccessory(JNIEnv *env, jobjec
         gParcelFileDescriptorOffsets.mConstructor, fileDescriptor);
 }
 
-static jboolean android_server_UsbDeviceManager_isStartRequested(JNIEnv* /* env */,
-                                                                 jobject /* thiz */)
+static jboolean android_server_UsbDeviceManager_isStartRequested(JNIEnv *env, jobject thiz)
 {
     int fd = open(DRIVER_NAME, O_RDWR);
     if (fd < 0) {
@@ -106,7 +112,7 @@ static jboolean android_server_UsbDeviceManager_isStartRequested(JNIEnv* /* env 
     return (result == 1);
 }
 
-static jint android_server_UsbDeviceManager_getAudioMode(JNIEnv* /* env */, jobject /* thiz */)
+static jint android_server_UsbDeviceManager_getAudioMode(JNIEnv *env, jobject thiz)
 {
     int fd = open(DRIVER_NAME, O_RDWR);
     if (fd < 0) {

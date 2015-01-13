@@ -16,7 +16,6 @@
 
 package android.webkit;
 
-import android.annotation.SystemApi;
 import android.app.ActivityManagerInternal;
 import android.app.Application;
 import android.app.AppGlobals;
@@ -47,7 +46,6 @@ import com.android.internal.os.Zygote;
  *
  * @hide
  */
-@SystemApi
 public final class WebViewFactory {
 
     private static final String CHROMIUM_WEBVIEW_FACTORY =
@@ -111,12 +109,7 @@ public final class WebViewFactory {
                 StrictMode.ThreadPolicy oldPolicy = StrictMode.allowThreadDiskReads();
                 Trace.traceBegin(Trace.TRACE_TAG_WEBVIEW, "providerClass.newInstance()");
                 try {
-                    try {
-                        sProviderInstance = providerClass.getConstructor(WebViewDelegate.class)
-                                .newInstance(new WebViewDelegate());
-                    } catch (Exception e) {
-                        sProviderInstance = providerClass.newInstance();
-                    }
+                    sProviderInstance = providerClass.newInstance();
                     if (DEBUG) Log.v(LOGTAG, "Loaded provider: " + sProviderInstance);
                     return sProviderInstance;
                 } catch (Exception e) {

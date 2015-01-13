@@ -28,7 +28,7 @@ LOCAL_SRC_FILES := native/base/geometry.cpp \
 
 LOCAL_CFLAGS := -DANDROID
 
-LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
+include external/stlport/libstlport.mk
 
 include $(BUILD_STATIC_LIBRARY)
 
@@ -48,6 +48,6 @@ LOCAL_SRC_FILES += native/imageproc/brightness.c \
 
 LOCAL_SHARED_LIBRARIES := liblog libutils libfilterfw
 
-LOCAL_CFLAGS += -Wall -Werror -Wunused -Wunreachable-code
+LOCAL_PRELINK_MODULE := false
 
 include $(BUILD_SHARED_LIBRARY)

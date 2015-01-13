@@ -26,8 +26,6 @@
 #include "android_os_Parcel.h"
 #include "android_view_KeyEvent.h"
 
-#include "core_jni_helpers.h"
-
 namespace android {
 
 static struct {
@@ -150,9 +148,7 @@ static jchar nativeGetMatch(JNIEnv *env, jobject clazz, jlong ptr, jint keyCode,
         return 0;
     }
 
-    char16_t result = map->getMap()->getMatch(
-        keyCode, reinterpret_cast<char16_t*>(chars), size_t(numChars),
-        metaState);
+    char16_t result = map->getMap()->getMatch(keyCode, chars, size_t(numChars), metaState);
 
     env->ReleasePrimitiveArrayCritical(charsArray, chars, JNI_ABORT);
     return result;
@@ -180,9 +176,7 @@ static jobjectArray nativeGetEvents(JNIEnv *env, jobject clazz, jlong ptr,
 
     Vector<KeyEvent> events;
     jobjectArray result = NULL;
-    if (map->getMap()->getEvents(map->getDeviceId(),
-                                 reinterpret_cast<char16_t*>(chars),
-                                 size_t(numChars), events)) {
+    if (map->getMap()->getEvents(map->getDeviceId(), chars, size_t(numChars), events)) {
         result = env->NewObjectArray(jsize(events.size()), gKeyEventClassInfo.clazz, NULL);
         if (result) {
             for (size_t i = 0; i < events.size(); i++) {
@@ -227,23 +221,40 @@ static JNINativeMethod g_methods[] = {
             (void*)nativeGetEvents },
 };
 
+#define FIND_CLASS(var, className) \
+        var = env->FindClass(className); \
+        LOG_FATAL_IF(! var, "Unable to find class " className);
+
+#define GET_METHOD_ID(var, clazz, methodName, methodDescriptor) \
+        var = env->GetMethodID(clazz, methodName, methodDescriptor); \
+        LOG_FATAL_IF(! var, "Unable to find method " methodName);
+
+#define GET_FIELD_ID(var, clazz, fieldName, fieldDescriptor) \
+        var = env->GetFieldID(clazz, fieldName, fieldDescriptor); \
+        LOG_FATAL_IF(! var, "Unable to find field " fieldName);
+
 int register_android_view_KeyCharacterMap(JNIEnv* env)
 {
-    gKeyCharacterMapClassInfo.clazz = FindClassOrDie(env, "android/view/KeyCharacterMap");
-    gKeyCharacterMapClassInfo.clazz = MakeGlobalRefOrDie(env, gKeyCharacterMapClassInfo.clazz);
+    FIND_CLASS(gKeyCharacterMapClassInfo.clazz, "android/view/KeyCharacterMap");
+    gKeyCharacterMapClassInfo.clazz = jclass(env->NewGlobalRef(gKeyCharacterMapClassInfo.clazz));
 
-    gKeyCharacterMapClassInfo.ctor = GetMethodIDOrDie(env, gKeyCharacterMapClassInfo.clazz,
+    GET_METHOD_ID(gKeyCharacterMapClassInfo.ctor, gKeyCharacterMapClassInfo.clazz,
             "<init>", "(J)V");
 
-    gKeyEventClassInfo.clazz = FindClassOrDie(env, "android/view/KeyEvent");
-    gKeyEventClassInfo.clazz = MakeGlobalRefOrDie(env, gKeyEventClassInfo.clazz);
+    FIND_CLASS(gKeyEventClassInfo.clazz, "android/view/KeyEvent");
+    gKeyEventClassInfo.clazz = jclass(env->NewGlobalRef(gKeyEventClassInfo.clazz));
 
-    jclass clazz = FindClassOrDie(env, "android/view/KeyCharacterMap$FallbackAction");
+    jclass clazz;
+    FIND_CLASS(clazz, "android/view/KeyCharacterMap$FallbackAction");
 
-    gFallbackActionClassInfo.keyCode = GetFieldIDOrDie(env, clazz, "keyCode", "I");
-    gFallbackActionClassInfo.metaState = GetFieldIDOrDie(env, clazz, "metaState", "I");
+    GET_FIELD_ID(gFallbackActionClassInfo.keyCode, clazz,
+            "keyCode", "I");
 
-    return RegisterMethodsOrDie(env, "android/view/KeyCharacterMap", g_methods, NELEM(g_methods));
+    GET_FIELD_ID(gFallbackActionClassInfo.metaState, clazz,
+            "metaState", "I");
+
+    return AndroidRuntime::registerNativeMethods(env,
+            "android/view/KeyCharacterMap", g_methods, NELEM(g_methods));
 }
 
 }; // namespace android

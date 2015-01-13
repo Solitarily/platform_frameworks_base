@@ -28,8 +28,6 @@
 
 #include <sqlite3.h>
 
-#include "core_jni_helpers.h"
-
 namespace android {
 
 static struct {
@@ -64,17 +62,27 @@ static JNINativeMethod gMethods[] =
             (void*) nativeGetPagerStats },
 };
 
+#define FIND_CLASS(var, className) \
+        var = env->FindClass(className); \
+        LOG_FATAL_IF(! var, "Unable to find class " className);
+
+#define GET_FIELD_ID(var, clazz, fieldName, fieldDescriptor) \
+        var = env->GetFieldID(clazz, fieldName, fieldDescriptor); \
+        LOG_FATAL_IF(! var, "Unable to find field " fieldName);
+
 int register_android_database_SQLiteDebug(JNIEnv *env)
 {
-    jclass clazz = FindClassOrDie(env, "android/database/sqlite/SQLiteDebug$PagerStats");
+    jclass clazz;
+    FIND_CLASS(clazz, "android/database/sqlite/SQLiteDebug$PagerStats");
 
-    gSQLiteDebugPagerStatsClassInfo.memoryUsed = GetFieldIDOrDie(env, clazz, "memoryUsed", "I");
-    gSQLiteDebugPagerStatsClassInfo.largestMemAlloc = GetFieldIDOrDie(env, clazz,
+    GET_FIELD_ID(gSQLiteDebugPagerStatsClassInfo.memoryUsed, clazz,
+            "memoryUsed", "I");
+    GET_FIELD_ID(gSQLiteDebugPagerStatsClassInfo.largestMemAlloc, clazz,
             "largestMemAlloc", "I");
-    gSQLiteDebugPagerStatsClassInfo.pageCacheOverflow = GetFieldIDOrDie(env, clazz,
+    GET_FIELD_ID(gSQLiteDebugPagerStatsClassInfo.pageCacheOverflow, clazz,
             "pageCacheOverflow", "I");
 
-    return RegisterMethodsOrDie(env, "android/database/sqlite/SQLiteDebug",
+    return AndroidRuntime::registerNativeMethods(env, "android/database/sqlite/SQLiteDebug",
             gMethods, NELEM(gMethods));
 }
 

@@ -25,14 +25,11 @@
 
 #include <cutils/log.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <SkBitmap.h>
 #include <SkCanvas.h>
 #include <SkColor.h>
 #include <SkPaint.h>
 #include <SkXfermode.h>
-#pragma GCC diagnostic pop
 
 namespace android {
 

@@ -231,14 +231,14 @@ android_media_SoundPool_SoundPoolImpl_release(JNIEnv *env, jobject thiz)
     SoundPool *ap = MusterSoundPool(env, thiz);
     if (ap != NULL) {
 
-        // release weak reference and clear callback
+        // release weak reference
         jobject weakRef = (jobject) ap->getUserData();
-        ap->setCallback(NULL, NULL);
         if (weakRef != NULL) {
             env->DeleteGlobalRef(weakRef);
         }
 
-        // clear native context
+        // clear callback and native context
+        ap->setCallback(NULL, NULL);
         env->SetLongField(thiz, fields.mNativeContext, 0);
         delete ap;
     }
@@ -312,7 +312,7 @@ static JNINativeMethod gMethods[] = {
 
 static const char* const kClassPathName = "android/media/SoundPool$SoundPoolImpl";
 
-jint JNI_OnLoad(JavaVM* vm, void* /* reserved */)
+jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
     JNIEnv* env = NULL;
     jint result = -1;

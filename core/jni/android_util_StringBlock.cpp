@@ -20,7 +20,7 @@
 #include "jni.h"
 #include "JNIHelp.h"
 #include <utils/misc.h>
-#include <core_jni_helpers.h>
+#include <android_runtime/AndroidRuntime.h>
 #include <utils/Log.h>
 
 #include <androidfw/ResourceTypes.h>
@@ -171,7 +171,7 @@ static JNINativeMethod gStringBlockMethods[] = {
 
 int register_android_content_StringBlock(JNIEnv* env)
 {
-    return RegisterMethodsOrDie(env,
+    return AndroidRuntime::registerNativeMethods(env,
             "android/content/res/StringBlock", gStringBlockMethods, NELEM(gStringBlockMethods));
 }
 

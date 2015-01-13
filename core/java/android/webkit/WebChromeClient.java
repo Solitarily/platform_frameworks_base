@@ -16,7 +16,6 @@
 
 package android.webkit;
 
-import android.annotation.SystemApi;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
@@ -510,7 +509,6 @@ public class WebChromeClient {
      * @deprecated Use {@link #showFileChooser} instead.
      * @hide This method was not published in any SDK version.
      */
-    @SystemApi
     @Deprecated
     public void openFileChooser(ValueCallback<Uri> uploadFile, String acceptType, String capture) {
         uploadFile.onReceiveValue(null);

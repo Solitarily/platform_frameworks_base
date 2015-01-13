@@ -11,9 +11,12 @@
 #include <SkiaShader.h>
 #include <Caches.h>
 
-#include "core_jni_helpers.h"
-
 using namespace android::uirenderer;
+
+static struct {
+    jclass clazz;
+    jfieldID shader;
+} gShaderClassInfo;
 
 static void ThrowIAE_IfNull(JNIEnv* env, void* ptr) {
     if (NULL == ptr) {
@@ -262,22 +265,23 @@ static JNINativeMethod gComposeShaderMethods[] = {
     { "nativeCreate2",      "(JJI)J",   (void*)ComposeShader_create2     },
 };
 
+#include <android_runtime/AndroidRuntime.h>
+
+#define REG(env, name, array)                                                                       \
+    result = android::AndroidRuntime::registerNativeMethods(env, name, array, SK_ARRAY_COUNT(array));  \
+    if (result < 0) return result
+
 int register_android_graphics_Shader(JNIEnv* env)
 {
-    android::RegisterMethodsOrDie(env, "android/graphics/Color", gColorMethods,
-                                  NELEM(gColorMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/Shader", gShaderMethods,
-                                  NELEM(gShaderMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/BitmapShader", gBitmapShaderMethods,
-                                  NELEM(gBitmapShaderMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/LinearGradient", gLinearGradientMethods,
-                                  NELEM(gLinearGradientMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/RadialGradient", gRadialGradientMethods,
-                                  NELEM(gRadialGradientMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/SweepGradient", gSweepGradientMethods,
-                                  NELEM(gSweepGradientMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/ComposeShader", gComposeShaderMethods,
-                                  NELEM(gComposeShaderMethods));
+    int result;
 
-    return 0;
+    REG(env, "android/graphics/Color", gColorMethods);
+    REG(env, "android/graphics/Shader", gShaderMethods);
+    REG(env, "android/graphics/BitmapShader", gBitmapShaderMethods);
+    REG(env, "android/graphics/LinearGradient", gLinearGradientMethods);
+    REG(env, "android/graphics/RadialGradient", gRadialGradientMethods);
+    REG(env, "android/graphics/SweepGradient", gSweepGradientMethods);
+    REG(env, "android/graphics/ComposeShader", gComposeShaderMethods);
+
+    return result;
 }

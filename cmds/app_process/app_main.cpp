@@ -24,7 +24,7 @@
 
 namespace android {
 
-static void app_usage()
+void app_usage()
 {
     fprintf(stderr,
         "Usage: app_process [java-options] cmd-dir start-class-name [options]\n");
@@ -146,10 +146,8 @@ static void maybeCreateDalvikCache() {
     static const char kInstructionSet[] = "arm";
 #elif defined(__i386__)
     static const char kInstructionSet[] = "x86";
-#elif defined (__mips__) && !defined(__LP64__)
+#elif defined (__mips__)
     static const char kInstructionSet[] = "mips";
-#elif defined (__mips__) && defined(__LP64__)
-    static const char kInstructionSet[] = "mips64";
 #else
 #error "Unknown instruction set"
 #endif

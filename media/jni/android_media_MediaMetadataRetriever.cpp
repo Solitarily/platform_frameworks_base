@@ -77,6 +77,7 @@ static MediaMetadataRetriever* getRetriever(JNIEnv* env, jobject thiz)
 static void setRetriever(JNIEnv* env, jobject thiz, MediaMetadataRetriever* retriever)
 {
     // No lock is needed, since it is called internally by other methods that are protected
+    MediaMetadataRetriever *old = (MediaMetadataRetriever*) env->GetLongField(thiz, fields.context);
     env->SetLongField(thiz, fields.context, (jlong) retriever);
 }
 
@@ -228,7 +229,7 @@ static void rotate(T *dst, const T *src, size_t width, size_t height, int angle)
 
 static jobject android_media_MediaMetadataRetriever_getFrameAtTime(JNIEnv *env, jobject thiz, jlong timeUs, jint option)
 {
-    ALOGV("getFrameAtTime: %lld us option: %d", (long long)timeUs, option);
+    ALOGV("getFrameAtTime: %lld us option: %d", timeUs, option);
     MediaMetadataRetriever* retriever = getRetriever(env, thiz);
     if (retriever == 0) {
         jniThrowException(env, "java/lang/IllegalStateException", "No retriever available");

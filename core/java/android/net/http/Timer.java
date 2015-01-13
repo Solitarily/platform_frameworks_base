@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 The Android Open Source Project
+ * Copyright (C) 2006 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,28 @@
  * limitations under the License.
  */
 
-package com.android.multidexlegacytestapp.annotation;
+package android.net.http;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
+import android.os.SystemClock;
 
-@Retention(RetentionPolicy.RUNTIME)
-public @interface TestAnnotation2 {
-  AnnotationValue value();
+/**
+ * {@hide}
+ * Debugging tool
+ */
+class Timer {
+
+    private long mStart;
+    private long mLast;
+
+    public Timer() {
+        mStart = mLast = SystemClock.uptimeMillis();
+    }
+
+    public void mark(String message) {
+        long now = SystemClock.uptimeMillis();
+        if (HttpLog.LOGV) {
+            HttpLog.v(message + " " + (now - mLast) + " total " + (now - mStart));
+        }
+        mLast = now;
+    }
 }

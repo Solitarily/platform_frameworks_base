@@ -360,6 +360,7 @@ android_media_MediaScanner_extractAlbumArt(
         env->SetByteArrayRegion(array, 0, mediaAlbumArt->size(), data);
     }
 
+done:
     free(mediaAlbumArt);
     // if NewByteArray() returned NULL, an out-of-memory
     // exception will have been raised. I just want to

@@ -16,14 +16,18 @@
 
 package android.webkit;
 
-import android.annotation.SystemApi;
 import android.net.WebAddress;
 
 /**
  * Manages the cookies used by an application's {@link WebView} instances.
  * Cookies are manipulated according to RFC2109.
  */
-public abstract class CookieManager {
+public class CookieManager {
+    /**
+     * @hide Only for use by WebViewProvider implementations
+     */
+    protected CookieManager() {
+    }
 
     @Override
     protected Object clone() throws CloneNotSupportedException {
@@ -55,7 +59,9 @@ public abstract class CookieManager {
      * @param accept whether {@link WebView} instances should send and accept
      *               cookies
      */
-    public abstract void setAcceptCookie(boolean accept);
+    public synchronized void setAcceptCookie(boolean accept) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Gets whether the application's {@link WebView} instances send and accept
@@ -63,7 +69,9 @@ public abstract class CookieManager {
      *
      * @return true if {@link WebView} instances send and accept cookies
      */
-    public abstract boolean acceptCookie();
+    public synchronized boolean acceptCookie() {
+        throw new MustOverrideException();
+    }
 
    /**
      * Sets whether the {@link WebView} should allow third party cookies to be set.
@@ -79,7 +87,9 @@ public abstract class CookieManager {
      * @param accept whether the {@link WebView} instance should accept
      *               third party cookies
      */
-    public abstract void setAcceptThirdPartyCookies(WebView webview, boolean accept);
+    public void setAcceptThirdPartyCookies(WebView webview, boolean accept) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Gets whether the {@link WebView} should allow third party cookies to be set.
@@ -87,7 +97,9 @@ public abstract class CookieManager {
      * @param webview the {@link WebView} instance to get the cookie policy for
      * @return true if the {@link WebView} accepts third party cookies
      */
-    public abstract boolean acceptThirdPartyCookies(WebView webview);
+    public boolean acceptThirdPartyCookies(WebView webview) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Sets a cookie for the given URL. Any existing cookie with the same host,
@@ -98,7 +110,9 @@ public abstract class CookieManager {
      * @param value the cookie as a string, using the format of the 'Set-Cookie'
      *              HTTP response header
      */
-    public abstract void setCookie(String url, String value);
+    public void setCookie(String url, String value) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Sets a cookie for the given URL. Any existing cookie with the same host,
@@ -119,7 +133,9 @@ public abstract class CookieManager {
      *              HTTP response header
      * @param callback a callback to be executed when the cookie has been set
      */
-    public abstract void setCookie(String url, String value, ValueCallback<Boolean> callback);
+    public void setCookie(String url, String value, ValueCallback<Boolean> callback) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Gets the cookies for the given URL.
@@ -128,7 +144,9 @@ public abstract class CookieManager {
      * @return value the cookies as a string, using the format of the 'Cookie'
      *               HTTP request header
      */
-    public abstract String getCookie(String url);
+    public String getCookie(String url) {
+        throw new MustOverrideException();
+    }
 
     /**
      * See {@link #getCookie(String)}.
@@ -137,10 +155,11 @@ public abstract class CookieManager {
      * @param privateBrowsing whether to use the private browsing cookie jar
      * @return value the cookies as a string, using the format of the 'Cookie'
      *               HTTP request header
-     * @hide Used by Browser and by WebViewProvider implementations.
+     * @hide Used by Browser, no intention to publish.
      */
-    @SystemApi
-    public abstract String getCookie(String url, boolean privateBrowsing);
+    public String getCookie(String url, boolean privateBrowsing) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Gets cookie(s) for a given uri so that it can be set to "cookie:" in http
@@ -149,11 +168,10 @@ public abstract class CookieManager {
      * @param uri the WebAddress for which the cookies are requested
      * @return value the cookies as a string, using the format of the 'Cookie'
      *               HTTP request header
-     * @hide Used by RequestHandle and by WebViewProvider implementations.
+     * @hide Used by RequestHandle, no intention to publish.
      */
-    @SystemApi
     public synchronized String getCookie(WebAddress uri) {
-        return getCookie(uri.toString());
+        throw new MustOverrideException();
     }
 
     /**
@@ -161,7 +179,9 @@ public abstract class CookieManager {
      * date.
      * @deprecated use {@link #removeSessionCookies(ValueCallback)} instead.
      */
-    public abstract void removeSessionCookie();
+    public void removeSessionCookie() {
+        throw new MustOverrideException();
+    }
 
     /**
      * Removes all session cookies, which are cookies without an expiration
@@ -177,14 +197,18 @@ public abstract class CookieManager {
      * method from a thread without a Looper.
      * @param callback a callback which is executed when the session cookies have been removed
      */
-    public abstract void removeSessionCookies(ValueCallback<Boolean> callback);
+    public void removeSessionCookies(ValueCallback<Boolean> callback) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Removes all cookies.
      * @deprecated Use {@link #removeAllCookies(ValueCallback)} instead.
      */
     @Deprecated
-    public abstract void removeAllCookie();
+    public void removeAllCookie() {
+        throw new MustOverrideException();
+    }
 
     /**
      * Removes all cookies.
@@ -199,37 +223,54 @@ public abstract class CookieManager {
      * method from a thread without a Looper.
      * @param callback a callback which is executed when the cookies have been removed
      */
-    public abstract void removeAllCookies(ValueCallback<Boolean> callback);
+    public void removeAllCookies(ValueCallback<Boolean> callback) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Gets whether there are stored cookies.
      *
      * @return true if there are stored cookies
      */
-    public abstract boolean hasCookies();
+    public synchronized boolean hasCookies() {
+        throw new MustOverrideException();
+    }
 
     /**
      * See {@link #hasCookies()}.
      *
      * @param privateBrowsing whether to use the private browsing cookie jar
-     * @hide Used by Browser and WebViewProvider implementations.
+     * @hide Used by Browser, no intention to publish.
      */
-    @SystemApi
-    public abstract boolean hasCookies(boolean privateBrowsing);
+    public synchronized boolean hasCookies(boolean privateBrowsing) {
+        throw new MustOverrideException();
+    }
 
     /**
      * Removes all expired cookies.
      * @deprecated The WebView handles removing expired cookies automatically.
      */
     @Deprecated
-    public abstract void removeExpiredCookie();
+    public void removeExpiredCookie() {
+        throw new MustOverrideException();
+    }
 
     /**
      * Ensures all cookies currently accessible through the getCookie API are
      * written to persistent storage.
      * This call will block the caller until it is done and may perform I/O.
      */
-    public abstract void flush();
+    public void flush() {
+        flushCookieStore();
+    }
+
+    /**
+     * Flushes all cookies managed by the Chrome HTTP stack to flash.
+     *
+     * @hide Package level api, called from CookieSyncManager
+     */
+    protected void flushCookieStore() {
+    }
 
     /**
      * Gets whether the application's {@link WebView} instances send and accept
@@ -248,8 +289,9 @@ public abstract class CookieManager {
      *
      * @hide Only for use by WebViewProvider implementations
      */
-    @SystemApi
-    protected abstract boolean allowFileSchemeCookiesImpl();
+    protected boolean allowFileSchemeCookiesImpl() {
+        throw new MustOverrideException();
+    }
 
     /**
      * Sets whether the application's {@link WebView} instances should send and
@@ -272,6 +314,7 @@ public abstract class CookieManager {
      *
      * @hide Only for use by WebViewProvider implementations
      */
-    @SystemApi
-    protected abstract void setAcceptFileSchemeCookiesImpl(boolean accept);
+    protected void setAcceptFileSchemeCookiesImpl(boolean accept) {
+        throw new MustOverrideException();
+    }
 }

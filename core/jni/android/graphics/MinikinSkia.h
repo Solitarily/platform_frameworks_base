@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _ANDROID_GRAPHICS_MINIKIN_SKIA_H_
-#define _ANDROID_GRAPHICS_MINIKIN_SKIA_H_
+#ifndef ANDROID_MINIKIN_SKIA_H
+#define ANDROID_MINIKIN_SKIA_H
 
 #include <minikin/MinikinFont.h>
 
@@ -54,4 +54,4 @@ private:
 
 }  // namespace android
 
-#endif  // _ANDROID_GRAPHICS_MINIKIN_SKIA_H_
+#endif  // ANDROID_MINIKIN_SKIA_H

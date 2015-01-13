@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef _ANDROID_GRAPHICS_REGION_H_
-#define _ANDROID_GRAPHICS_REGION_H_
+#ifndef _ANDROID_GRAPHICS_REGION_H
+#define _ANDROID_GRAPHICS_REGION_H
 
 #include "jni.h"
 #include "SkRegion.h"
@@ -27,4 +27,4 @@ extern SkRegion* android_graphics_Region_getSkRegion(JNIEnv* env, jobject region
 
 } // namespace android
 
-#endif // _ANDROID_GRAPHICS_REGION_H_
+#endif // _ANDROID_GRAPHICS_REGION_H

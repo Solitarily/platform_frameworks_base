@@ -46,7 +46,7 @@
 #include <ScopedUtfChars.h>
 #include <ScopedLocalRef.h>
 
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 //#undef ALOGV
 //#define ALOGV(...) fprintf(stderr, __VA_ARGS__)
@@ -82,6 +82,15 @@ static struct binderinternal_offsets_t
     jmethodID mForceGc;
 
 } gBinderInternalOffsets;
+
+// ----------------------------------------------------------------------------
+
+static struct debug_offsets_t
+{
+    // Class state.
+    jclass mClass;
+
+} gDebugOffsets;
 
 // ----------------------------------------------------------------------------
 
@@ -206,6 +215,7 @@ static void report_exception(JNIEnv* env, jthrowable excep, const char* msg)
         sleep(60);
         ALOGE("Forcefully exiting");
         exit(1);
+        *((int *) 1) = 1;
     }
 
 bail:
@@ -261,9 +271,9 @@ protected:
         //printf("\n");
         jboolean res = env->CallBooleanMethod(mObject, gBinderOffsets.mExecTransact,
             code, reinterpret_cast<jlong>(&data), reinterpret_cast<jlong>(reply), flags);
+        jthrowable excep = env->ExceptionOccurred();
 
-        if (env->ExceptionCheck()) {
-            jthrowable excep = env->ExceptionOccurred();
+        if (excep) {
             report_exception(env, excep,
                 "*** Uncaught remote exception!  "
                 "(Exceptions are not yet supported across processes.)");
@@ -281,12 +291,12 @@ protected:
             set_dalvik_blockguard_policy(env, strict_policy_before);
         }
 
-        if (env->ExceptionCheck()) {
-            jthrowable excep = env->ExceptionOccurred();
-            report_exception(env, excep,
+        jthrowable excep2 = env->ExceptionOccurred();
+        if (excep2) {
+            report_exception(env, excep2,
                 "*** Uncaught exception in onBinderStrictModePolicyChange");
             /* clean up JNI local ref -- we don't return to Java code */
-            env->DeleteLocalRef(excep);
+            env->DeleteLocalRef(excep2);
         }
 
         // Need to always call through the native implementation of
@@ -388,8 +398,8 @@ public:
 
             env->CallStaticVoidMethod(gBinderProxyOffsets.mClass,
                     gBinderProxyOffsets.mSendDeathNotice, mObject);
-            if (env->ExceptionCheck()) {
-                jthrowable excep = env->ExceptionOccurred();
+            jthrowable excep = env->ExceptionOccurred();
+            if (excep) {
                 report_exception(env, excep,
                         "*** Uncaught exception returned from death notification!");
             }
@@ -826,13 +836,21 @@ const char* const kBinderPathName = "android/os/Binder";
 
 static int int_register_android_os_Binder(JNIEnv* env)
 {
-    jclass clazz = FindClassOrDie(env, kBinderPathName);
+    jclass clazz;
 
-    gBinderOffsets.mClass = MakeGlobalRefOrDie(env, clazz);
-    gBinderOffsets.mExecTransact = GetMethodIDOrDie(env, clazz, "execTransact", "(IJJI)Z");
-    gBinderOffsets.mObject = GetFieldIDOrDie(env, clazz, "mObject", "J");
+    clazz = env->FindClass(kBinderPathName);
+    LOG_FATAL_IF(clazz == NULL, "Unable to find class android.os.Binder");
 
-    return RegisterMethodsOrDie(
+    gBinderOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gBinderOffsets.mExecTransact
+        = env->GetMethodID(clazz, "execTransact", "(IJJI)Z");
+    assert(gBinderOffsets.mExecTransact);
+
+    gBinderOffsets.mObject
+        = env->GetFieldID(clazz, "mObject", "J");
+    assert(gBinderOffsets.mObject);
+
+    return AndroidRuntime::registerNativeMethods(
         env, kBinderPathName,
         gBinderMethods, NELEM(gBinderMethods));
 }
@@ -902,12 +920,17 @@ const char* const kBinderInternalPathName = "com/android/internal/os/BinderInter
 
 static int int_register_android_os_BinderInternal(JNIEnv* env)
 {
-    jclass clazz = FindClassOrDie(env, kBinderInternalPathName);
+    jclass clazz;
 
-    gBinderInternalOffsets.mClass = MakeGlobalRefOrDie(env, clazz);
-    gBinderInternalOffsets.mForceGc = GetStaticMethodIDOrDie(env, clazz, "forceBinderGc", "()V");
+    clazz = env->FindClass(kBinderInternalPathName);
+    LOG_FATAL_IF(clazz == NULL, "Unable to find class com.android.internal.os.BinderInternal");
 
-    return RegisterMethodsOrDie(
+    gBinderInternalOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gBinderInternalOffsets.mForceGc
+        = env->GetStaticMethodID(clazz, "forceBinderGc", "()V");
+    assert(gBinderInternalOffsets.mForceGc);
+
+    return AndroidRuntime::registerNativeMethods(
         env, kBinderInternalPathName,
         gBinderInternalMethods, NELEM(gBinderInternalMethods));
 }
@@ -932,8 +955,7 @@ static jstring android_os_BinderProxy_getInterfaceDescriptor(JNIEnv* env, jobjec
     IBinder* target = (IBinder*) env->GetLongField(obj, gBinderProxyOffsets.mObject);
     if (target != NULL) {
         const String16& desc = target->getInterfaceDescriptor();
-        return env->NewString(reinterpret_cast<const jchar*>(desc.string()),
-                              desc.size());
+        return env->NewString(desc.string(), desc.size());
     }
     jniThrowException(env, "java/lang/RuntimeException",
             "No binder found for object");
@@ -1002,9 +1024,7 @@ static bool push_eventlog_int(char** pos, const char* end, jint val) {
 }
 
 // From frameworks/base/core/java/android/content/EventLogTags.logtags:
-
-static const bool kEnableBinderSample = false;
-
+#define ENABLE_BINDER_SAMPLE 0
 #define LOGTAG_BINDER_OPERATION 52004
 
 static void conditionally_log_binder_call(int64_t start_millis,
@@ -1043,9 +1063,16 @@ static void conditionally_log_binder_call(int64_t start_millis,
 }
 
 // We only measure binder call durations to potentially log them if
-// we're on the main thread.
+// we're on the main thread.  Unfortunately sim-eng doesn't seem to
+// have gettid, so we just ignore this and don't log if we can't
+// get the thread id.
 static bool should_time_binder_calls() {
-  return (getpid() == gettid());
+#ifdef HAVE_GETTID
+  return (getpid() == androidGetTid());
+#else
+#warning no gettid(), so not logging Binder calls...
+  return false;
+#endif
 }
 
 static jboolean android_os_BinderProxy_transact(JNIEnv* env, jobject obj,
@@ -1075,28 +1102,24 @@ static jboolean android_os_BinderProxy_transact(JNIEnv* env, jobject obj,
     ALOGV("Java code calling transact on %p in Java object %p with code %" PRId32 "\n",
             target, obj, code);
 
+#if ENABLE_BINDER_SAMPLE
+    // Only log the binder call duration for things on the Java-level main thread.
+    // But if we don't
+    const bool time_binder_calls = should_time_binder_calls();
 
-    bool time_binder_calls;
     int64_t start_millis;
-    if (kEnableBinderSample) {
-        // Only log the binder call duration for things on the Java-level main thread.
-        // But if we don't
-        time_binder_calls = should_time_binder_calls();
-
-        if (time_binder_calls) {
-            start_millis = uptimeMillis();
-        }
+    if (time_binder_calls) {
+        start_millis = uptimeMillis();
     }
-
+#endif
     //printf("Transact from Java code to %p sending: ", target); data->print();
     status_t err = target->transact(code, *data, reply, flags);
     //if (reply) printf("Transact from Java code to %p received: ", target); reply->print();
-
-    if (kEnableBinderSample) {
-        if (time_binder_calls) {
-            conditionally_log_binder_call(start_millis, target, code);
-        }
+#if ENABLE_BINDER_SAMPLE
+    if (time_binder_calls) {
+        conditionally_log_binder_call(start_millis, target, code);
     }
+#endif
 
     if (err == NO_ERROR) {
         return JNI_TRUE;
@@ -1221,24 +1244,39 @@ const char* const kBinderProxyPathName = "android/os/BinderProxy";
 
 static int int_register_android_os_BinderProxy(JNIEnv* env)
 {
-    jclass clazz = FindClassOrDie(env, "java/lang/Error");
-    gErrorOffsets.mClass = MakeGlobalRefOrDie(env, clazz);
+    jclass clazz;
 
-    clazz = FindClassOrDie(env, kBinderProxyPathName);
-    gBinderProxyOffsets.mClass = MakeGlobalRefOrDie(env, clazz);
-    gBinderProxyOffsets.mConstructor = GetMethodIDOrDie(env, clazz, "<init>", "()V");
-    gBinderProxyOffsets.mSendDeathNotice = GetStaticMethodIDOrDie(env, clazz, "sendDeathNotice",
-            "(Landroid/os/IBinder$DeathRecipient;)V");
+    clazz = env->FindClass("java/lang/Error");
+    LOG_FATAL_IF(clazz == NULL, "Unable to find class java.lang.Error");
+    gErrorOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
 
-    gBinderProxyOffsets.mObject = GetFieldIDOrDie(env, clazz, "mObject", "J");
-    gBinderProxyOffsets.mSelf = GetFieldIDOrDie(env, clazz, "mSelf",
-                                                "Ljava/lang/ref/WeakReference;");
-    gBinderProxyOffsets.mOrgue = GetFieldIDOrDie(env, clazz, "mOrgue", "J");
+    clazz = env->FindClass(kBinderProxyPathName);
+    LOG_FATAL_IF(clazz == NULL, "Unable to find class android.os.BinderProxy");
 
-    clazz = FindClassOrDie(env, "java/lang/Class");
-    gClassOffsets.mGetName = GetMethodIDOrDie(env, clazz, "getName", "()Ljava/lang/String;");
+    gBinderProxyOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gBinderProxyOffsets.mConstructor
+        = env->GetMethodID(clazz, "<init>", "()V");
+    assert(gBinderProxyOffsets.mConstructor);
+    gBinderProxyOffsets.mSendDeathNotice
+        = env->GetStaticMethodID(clazz, "sendDeathNotice", "(Landroid/os/IBinder$DeathRecipient;)V");
+    assert(gBinderProxyOffsets.mSendDeathNotice);
 
-    return RegisterMethodsOrDie(
+    gBinderProxyOffsets.mObject
+        = env->GetFieldID(clazz, "mObject", "J");
+    assert(gBinderProxyOffsets.mObject);
+    gBinderProxyOffsets.mSelf
+        = env->GetFieldID(clazz, "mSelf", "Ljava/lang/ref/WeakReference;");
+    assert(gBinderProxyOffsets.mSelf);
+    gBinderProxyOffsets.mOrgue
+        = env->GetFieldID(clazz, "mOrgue", "J");
+    assert(gBinderProxyOffsets.mOrgue);
+
+    clazz = env->FindClass("java/lang/Class");
+    LOG_FATAL_IF(clazz == NULL, "Unable to find java.lang.Class");
+    gClassOffsets.mGetName = env->GetMethodID(clazz, "getName", "()Ljava/lang/String;");
+    assert(gClassOffsets.mGetName);
+
+    return AndroidRuntime::registerNativeMethods(
         env, kBinderProxyPathName,
         gBinderProxyMethods, NELEM(gBinderProxyMethods));
 }
@@ -1256,20 +1294,28 @@ int register_android_os_Binder(JNIEnv* env)
     if (int_register_android_os_BinderProxy(env) < 0)
         return -1;
 
-    jclass clazz = FindClassOrDie(env, "android/util/Log");
-    gLogOffsets.mClass = MakeGlobalRefOrDie(env, clazz);
-    gLogOffsets.mLogE = GetStaticMethodIDOrDie(env, clazz, "e",
-            "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I");
+    jclass clazz;
 
-    clazz = FindClassOrDie(env, "android/os/ParcelFileDescriptor");
-    gParcelFileDescriptorOffsets.mClass = MakeGlobalRefOrDie(env, clazz);
-    gParcelFileDescriptorOffsets.mConstructor = GetMethodIDOrDie(env, clazz, "<init>",
-                                                                 "(Ljava/io/FileDescriptor;)V");
+    clazz = env->FindClass("android/util/Log");
+    LOG_FATAL_IF(clazz == NULL, "Unable to find class android.util.Log");
+    gLogOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gLogOffsets.mLogE = env->GetStaticMethodID(
+        clazz, "e", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)I");
+    assert(gLogOffsets.mLogE);
 
-    clazz = FindClassOrDie(env, "android/os/StrictMode");
-    gStrictModeCallbackOffsets.mClass = MakeGlobalRefOrDie(env, clazz);
-    gStrictModeCallbackOffsets.mCallback = GetStaticMethodIDOrDie(env, clazz,
-            "onBinderStrictModePolicyChange", "(I)V");
+    clazz = env->FindClass("android/os/ParcelFileDescriptor");
+    LOG_FATAL_IF(clazz == NULL, "Unable to find class android.os.ParcelFileDescriptor");
+    gParcelFileDescriptorOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gParcelFileDescriptorOffsets.mConstructor
+        = env->GetMethodID(clazz, "<init>", "(Ljava/io/FileDescriptor;)V");
+
+    clazz = env->FindClass("android/os/StrictMode");
+    LOG_FATAL_IF(clazz == NULL, "Unable to find class android.os.StrictMode");
+    gStrictModeCallbackOffsets.mClass = (jclass) env->NewGlobalRef(clazz);
+    gStrictModeCallbackOffsets.mCallback = env->GetStaticMethodID(
+        clazz, "onBinderStrictModePolicyChange", "(I)V");
+    LOG_FATAL_IF(gStrictModeCallbackOffsets.mCallback == NULL,
+                 "Unable to find strict mode callback.");
 
     return 0;
 }

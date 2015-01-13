@@ -4,8 +4,6 @@
 #include "SkBlurMaskFilter.h"
 #include "SkTableMaskFilter.h"
 
-#include "core_jni_helpers.h"
-
 #include <jni.h>
 
 static void ThrowIAE_IfNull(JNIEnv* env, void* ptr) {
@@ -79,16 +77,20 @@ static JNINativeMethod gTableMaskFilterMethods[] = {
     { "nativeNewGamma", "(F)J", (void*)SkMaskFilterGlue::createGammaTable    }
 };
 
+#include <android_runtime/AndroidRuntime.h>
+
+#define REG(env, name, array)                                                                       \
+    result = android::AndroidRuntime::registerNativeMethods(env, name, array, SK_ARRAY_COUNT(array));  \
+    if (result < 0) return result
+
 int register_android_graphics_MaskFilter(JNIEnv* env)
 {
-    android::RegisterMethodsOrDie(env, "android/graphics/MaskFilter", gMaskFilterMethods,
-                                  NELEM(gMaskFilterMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/BlurMaskFilter", gBlurMaskFilterMethods,
-                                  NELEM(gBlurMaskFilterMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/EmbossMaskFilter",
-                                  gEmbossMaskFilterMethods, NELEM(gEmbossMaskFilterMethods));
-    android::RegisterMethodsOrDie(env, "android/graphics/TableMaskFilter", gTableMaskFilterMethods,
-                                  NELEM(gTableMaskFilterMethods));
+    int result;
+
+    REG(env, "android/graphics/MaskFilter", gMaskFilterMethods);
+    REG(env, "android/graphics/BlurMaskFilter", gBlurMaskFilterMethods);
+    REG(env, "android/graphics/EmbossMaskFilter", gEmbossMaskFilterMethods);
+    REG(env, "android/graphics/TableMaskFilter", gTableMaskFilterMethods);
 
     return 0;
 }

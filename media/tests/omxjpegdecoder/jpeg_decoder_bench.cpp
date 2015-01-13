@@ -20,13 +20,9 @@
 
 #include <binder/ProcessState.h>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "SkBitmap.h"
 #include "SkImageDecoder.h"
 #include "SkStream.h"
-#pragma GCC diagnostic pop
-
 #include "omx_jpeg_decoder.h"
 
 class SkJPEGImageDecoder : public SkImageDecoder {
@@ -105,11 +101,6 @@ int testDecoder(SkImageDecoder* decoder, char* filename) {
 }
 
 int main(int argc, char** argv) {
-    if (argc < 2) {
-        printf("Need a parameter!\n");
-        return 1;
-    }
-
     android::ProcessState::self()->startThreadPool();
 
     printf("Decoding jpeg with libjpeg...\n");

@@ -24,8 +24,8 @@
 
 namespace android {
 
-class IMemory;
-class MemoryDealer;
+struct IMemory;
+struct MemoryDealer;
 
 struct JMediaHTTPConnection : public RefBase {
     enum {

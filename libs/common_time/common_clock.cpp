@@ -19,7 +19,6 @@
 #define LOG_TAG "common_time"
 #include <utils/Log.h>
 
-#include <inttypes.h>
 #include <stdint.h>
 
 #include <utils/Errors.h>
@@ -51,7 +50,7 @@ bool CommonClock::init(uint64_t local_freq) {
 
     LinearTransform::reduce(&numer, &denom);
     if ((numer > UINT32_MAX) || (denom > UINT32_MAX)) {
-        ALOGE("Overflow in CommonClock::init while trying to reduce %" PRIu64 "/%" PRIu64,
+        ALOGE("Overflow in CommonClock::init while trying to reduce %lld/%lld",
              kCommonFreq, local_freq);
         return false;
     }

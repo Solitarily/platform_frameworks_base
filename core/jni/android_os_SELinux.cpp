@@ -19,7 +19,7 @@
 
 #include "JNIHelp.h"
 #include "jni.h"
-#include "core_jni_helpers.h"
+#include "android_runtime/AndroidRuntime.h"
 #include "selinux/selinux.h"
 #include "selinux/android.h"
 #include <errno.h>
@@ -97,7 +97,7 @@ static jstring getPeerCon(JNIEnv *env, jobject, jobject fileDescriptor) {
     }
 
     int fd = jniGetFDFromFileDescriptor(env, fileDescriptor);
-    if (env->ExceptionCheck()) {
+    if (env->ExceptionOccurred() != NULL) {
         ALOGE("getPeerCon => getFD for %p failed", fileDescriptor);
         return NULL;
     }
@@ -469,7 +469,8 @@ int register_android_os_SELinux(JNIEnv *env) {
 
     isSELinuxDisabled = (is_selinux_enabled() != 1) ? true : false;
 
-    return RegisterMethodsOrDie(env, "android/os/SELinux", method_table, NELEM(method_table));
+    return AndroidRuntime::registerNativeMethods(env, "android/os/SELinux", method_table,
+            NELEM(method_table));
 }
 
 }

@@ -18,7 +18,7 @@
 #include <utils/Log.h>
 
 #include "JNIHelp.h"
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 #include <androidfw/BackupHelpers.h>
 
@@ -85,6 +85,7 @@ writeEntityData_native(JNIEnv* env, jobject clazz, jlong w, jbyteArray data, jin
 static void
 setKeyPrefix_native(JNIEnv* env, jobject clazz, jlong w, jstring keyPrefixObj)
 {
+    int err;
     BackupDataWriter* writer = (BackupDataWriter*)w;
 
     const char* keyPrefixUTF = env->GetStringUTFChars(keyPrefixObj, NULL);
@@ -106,7 +107,7 @@ static const JNINativeMethod g_methods[] = {
 int register_android_backup_BackupDataOutput(JNIEnv* env)
 {
     //ALOGD("register_android_backup_BackupDataOutput");
-    return RegisterMethodsOrDie(env, "android/app/backup/BackupDataOutput",
+    return AndroidRuntime::registerNativeMethods(env, "android/app/backup/BackupDataOutput",
             g_methods, NELEM(g_methods));
 }
 

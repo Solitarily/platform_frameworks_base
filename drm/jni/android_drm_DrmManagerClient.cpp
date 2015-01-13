@@ -381,8 +381,7 @@ static jobjectArray android_drm_DrmManagerClient_getAllSupportInfo(
 }
 
 static void android_drm_DrmManagerClient_installDrmEngine(
-            JNIEnv* /* env */, jobject /* thiz */, jint /* uniqueId */,
-            jstring /* engineFilePath */) {
+            JNIEnv* env, jobject thiz, jint uniqueId, jstring engineFilePath) {
     ALOGV("installDrmEngine - Enter");
     //getDrmManagerClient(env, thiz)
     //  ->installDrmEngine(uniqueId, Utility::getStringValue(env, engineFilePath));
@@ -777,7 +776,7 @@ static int registerNativeMethods(JNIEnv* env) {
     return result;
 }
 
-jint JNI_OnLoad(JavaVM* vm, void* /* reserved */) {
+jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     JNIEnv* env = NULL;
     jint result = -1;
 

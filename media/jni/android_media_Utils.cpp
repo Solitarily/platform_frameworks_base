@@ -136,7 +136,8 @@ static void SetMapInt32(
     jstring keyObj = env->NewStringUTF(key);
     jobject valueObj = makeIntegerObject(env, value);
 
-    env->CallObjectMethod(hashMapObj, hashMapPutID, keyObj, valueObj);
+    jobject res = env->CallObjectMethod(
+            hashMapObj, hashMapPutID, keyObj, valueObj);
 
     env->DeleteLocalRef(valueObj); valueObj = NULL;
     env->DeleteLocalRef(keyObj); keyObj = NULL;
@@ -265,7 +266,8 @@ status_t ConvertMessageToMap(
         if (valueObj != NULL) {
             jstring keyObj = env->NewStringUTF(key);
 
-            env->CallObjectMethod(hashMap, hashMapPutID, keyObj, valueObj);
+            jobject res = env->CallObjectMethod(
+                    hashMap, hashMapPutID, keyObj, valueObj);
 
             env->DeleteLocalRef(keyObj); keyObj = NULL;
             env->DeleteLocalRef(valueObj); valueObj = NULL;

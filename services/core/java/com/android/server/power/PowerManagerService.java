@@ -153,6 +153,8 @@ public final class PowerManagerService extends SystemService
     private static final int POWER_HINT_INTERACTION = 2;
     private static final int POWER_HINT_LOW_POWER = 5;
 
+    private static final int DEFAULT_BUTTON_ON_DURATION = 5 * 1000;
+
     private final Context mContext;
     private final ServiceThread mHandlerThread;
     private final PowerManagerHandler mHandler;
@@ -168,6 +170,11 @@ public final class PowerManagerService extends SystemService
     private SettingsObserver mSettingsObserver;
     private DreamManagerInternal mDreamManager;
     private Light mAttentionLight;
+    private Light mButtonsLight;
+
+    private int mButtonTimeout;
+    private int mButtonBrightness;
+    private int mButtonBrightnessSettingDefault;
 
     private final Object mLock = new Object();
 
@@ -380,6 +387,11 @@ public final class PowerManagerService extends SystemService
     // Use -1 to disable.
     private int mScreenBrightnessOverrideFromWindowManager = -1;
 
+    // The button brightness setting override from the window manager
+    // to allow the current foreground activity to override the button brightness.
+    // Use -1 to disable.
+    private int mButtonBrightnessOverrideFromWindowManager = -1;
+
     // The user activity timeout override from the window manager
     // to allow the current foreground activity to override the user activity timeout.
     // Use -1 to disable.
@@ -422,6 +434,9 @@ public final class PowerManagerService extends SystemService
 
     private final ArrayList<PowerManagerInternal.LowPowerModeListener> mLowPowerModeListeners
             = new ArrayList<PowerManagerInternal.LowPowerModeListener>();
+
+    //track the blocked uids.
+    private final ArrayList<Integer> mBlockedUids = new ArrayList<Integer>();
 
     private native void nativeInit();
 
@@ -492,6 +507,7 @@ public final class PowerManagerService extends SystemService
             mScreenBrightnessSettingMinimum = pm.getMinimumScreenBrightnessSetting();
             mScreenBrightnessSettingMaximum = pm.getMaximumScreenBrightnessSetting();
             mScreenBrightnessSettingDefault = pm.getDefaultScreenBrightnessSetting();
+            mButtonBrightnessSettingDefault = pm.getDefaultButtonBrightness();
 
             SensorManager sensorManager = new SystemSensorManager(mContext, mHandler.getLooper());
 
@@ -509,6 +525,7 @@ public final class PowerManagerService extends SystemService
 
             mLightsManager = getLocalService(LightsManager.class);
             mAttentionLight = mLightsManager.getLight(LightsManager.LIGHT_ID_ATTENTION);
+            mButtonsLight = mLightsManager.getLight(LightsManager.LIGHT_ID_BUTTONS);
 
             // Initialize display power management.
             mDisplayManagerInternal.initPowerManagement(
@@ -567,6 +584,12 @@ public final class PowerManagerService extends SystemService
                     false, mSettingsObserver, UserHandle.USER_ALL);
             resolver.registerContentObserver(Settings.Global.getUriFor(
                     Settings.Global.LOW_POWER_MODE_TRIGGER_LEVEL),
+                    false, mSettingsObserver, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.BUTTON_BRIGHTNESS),
+                    false, mSettingsObserver, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.BUTTON_BACKLIGHT_TIMEOUT),
                     false, mSettingsObserver, UserHandle.USER_ALL);
             // Go.
             readConfigurationLocked();
@@ -669,6 +692,14 @@ public final class PowerManagerService extends SystemService
             updateLowPowerModeLocked();
         }
 
+        mButtonTimeout = Settings.System.getIntForUser(resolver,
+                Settings.System.BUTTON_BACKLIGHT_TIMEOUT,
+                DEFAULT_BUTTON_ON_DURATION, UserHandle.USER_CURRENT);
+
+        mButtonBrightness = Settings.System.getIntForUser(resolver,
+                Settings.System.BUTTON_BRIGHTNESS, mButtonBrightnessSettingDefault,
+                UserHandle.USER_CURRENT);
+
         mDirty |= DIRTY_SETTINGS;
     }
 
@@ -720,6 +751,15 @@ public final class PowerManagerService extends SystemService
     private void acquireWakeLockInternal(IBinder lock, int flags, String tag, String packageName,
             WorkSource ws, String historyTag, int uid, int pid) {
         synchronized (mLock) {
+            if(mBlockedUids.contains(new Integer(uid)) && uid != Process.myUid()) {
+                //wakelock acquisition for blocked uid, do not acquire.
+                if (DEBUG_SPEW) {
+                    Slog.d(TAG, "uid is blocked not acquiring wakeLock flags=0x" +
+                            Integer.toHexString(flags) + " tag=" + tag + " uid=" + uid +
+                            " pid =" + pid);
+                }
+                return;
+            }
             if (DEBUG_SPEW) {
                 Slog.d(TAG, "acquireWakeLockInternal: lock=" + Objects.hashCode(lock)
                         + ", flags=0x" + Integer.toHexString(flags)
@@ -869,6 +909,21 @@ public final class PowerManagerService extends SystemService
                 wakeLock.updateWorkSource(ws);
             }
         }
+    }
+
+    private boolean checkWorkSourceObjectId(int uid, WakeLock wl) {
+        try {
+            for (int index = 0; index < wl.mWorkSource.size(); index++) {
+                if (uid == wl.mWorkSource.get(index)) {
+                    if (DEBUG_SPEW) Slog.v(TAG, "WS uid matched");
+                    return true;
+                }
+            }
+        }
+        catch (Exception e) {
+            return false;
+        }
+        return false;
     }
 
     private int findWakeLockIndexLocked(IBinder lock) {
@@ -1450,10 +1505,26 @@ public final class PowerManagerService extends SystemService
                     nextTimeout = mLastUserActivityTime
                             + screenOffTimeout - screenDimDuration;
                     if (now < nextTimeout) {
+                        int buttonBrightness;
+                        if (mButtonBrightnessOverrideFromWindowManager >= 0) {
+                            buttonBrightness = mButtonBrightnessOverrideFromWindowManager;
+                        } else {
+                            buttonBrightness = mButtonBrightness;
+                        }
+
+                        if (mButtonTimeout != 0 && now > mLastUserActivityTime + mButtonTimeout) {
+                             mButtonsLight.setBrightness(0);
+                        } else {
+                            mButtonsLight.setBrightness(buttonBrightness);
+                            if (buttonBrightness != 0 && mButtonTimeout != 0) {
+                                nextTimeout = now + mButtonTimeout;
+                            }
+                        }
                         mUserActivitySummary = USER_ACTIVITY_SCREEN_BRIGHT;
                     } else {
                         nextTimeout = mLastUserActivityTime + screenOffTimeout;
                         if (now < nextTimeout) {
+                            mButtonsLight.setBrightness(0);
                             mUserActivitySummary = USER_ACTIVITY_SCREEN_DIM;
                         }
                     }
@@ -3137,6 +3208,56 @@ public final class PowerManagerService extends SystemService
                 Binder.restoreCallingIdentity(ident);
             }
         }
+
+        /* updates the blocked uids, so if a wake lock is acquired for it
+         * can be released.
+         */
+        public void updateBlockedUids(int uid, boolean isBlocked) {
+
+            if (DEBUG_SPEW) Slog.v(TAG, "updateBlockedUids: uid = " + uid + "isBlocked = " + isBlocked);
+
+            if (Binder.getCallingUid() != Process.SYSTEM_UID) {
+                if (DEBUG_SPEW) Slog.v(TAG, "UpdateBlockedUids is not allowed");
+                return;
+            }
+
+            synchronized(mLock) {
+                if(isBlocked) {
+                    mBlockedUids.add(new Integer(uid));
+                    for (int index = 0; index < mWakeLocks.size(); index++) {
+                        WakeLock wl = mWakeLocks.get(index);
+                        if(wl != null) {
+                            if(wl.mTag.startsWith("*sync*") && wl.mOwnerUid == Process.SYSTEM_UID) {
+                                releaseWakeLockInternal(wl.mLock, wl.mFlags);
+                                index--;
+                                if (DEBUG_SPEW) Slog.v(TAG, "Internally releasing the wakelock"
+                                        + "acquired by SyncManager");
+                                continue;
+                            }
+                            // release the wakelock for the blocked uid
+                            if (wl.mOwnerUid == uid || checkWorkSourceObjectId(uid, wl)) {
+                                releaseWakeLockInternal(wl.mLock, wl.mFlags);
+                                index--;
+                                if (DEBUG_SPEW) Slog.v(TAG, "Internally releasing it");
+                            }
+                        }
+                    }
+                }
+                else {
+                    mBlockedUids.remove(new Integer(uid));
+                }
+            }
+        }
+    }
+
+    private void setButtonBrightnessOverrideFromWindowManagerInternal(int brightness) {
+        synchronized (mLock) {
+            if (mButtonBrightnessOverrideFromWindowManager != brightness) {
+                mButtonBrightnessOverrideFromWindowManager = brightness;
+                mDirty |= DIRTY_SETTINGS;
+                updatePowerStateLocked();
+            }
+        }
     }
 
     private final class LocalService extends PowerManagerInternal {
@@ -3151,8 +3272,15 @@ public final class PowerManagerService extends SystemService
 
         @Override
         public void setButtonBrightnessOverrideFromWindowManager(int screenBrightness) {
-            // Do nothing.
-            // Button lights are not currently supported in the new implementation.
+            mContext.enforceCallingOrSelfPermission(android.Manifest.permission.DEVICE_POWER, null);
+
+            final long ident = Binder.clearCallingIdentity();
+            try {
+                setButtonBrightnessOverrideFromWindowManagerInternal(screenBrightness);
+            } finally {
+                Binder.restoreCallingIdentity(ident);
+            }
+
         }
 
         @Override

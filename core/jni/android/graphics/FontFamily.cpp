@@ -17,7 +17,7 @@
 #define LOG_TAG "Minikin"
 
 #include "JNIHelp.h"
-#include <core_jni_helpers.h>
+#include <android_runtime/AndroidRuntime.h>
 
 #include "SkTypeface.h"
 #include "GraphicsJNI.h"
@@ -125,8 +125,9 @@ static JNINativeMethod gFontFamilyMethods[] = {
 
 int register_android_graphics_FontFamily(JNIEnv* env)
 {
-    return RegisterMethodsOrDie(env, "android/graphics/FontFamily", gFontFamilyMethods,
-                                NELEM(gFontFamilyMethods));
+    return android::AndroidRuntime::registerNativeMethods(env,
+        "android/graphics/FontFamily",
+        gFontFamilyMethods, NELEM(gFontFamilyMethods));
 }
 
 }

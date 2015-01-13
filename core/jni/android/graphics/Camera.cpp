@@ -1,5 +1,5 @@
 #include "jni.h"
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 #include "SkCamera.h"
 
@@ -137,8 +137,16 @@ static JNINativeMethod gCameraMethods[] = {
 };
 
 int register_android_graphics_Camera(JNIEnv* env) {
-    jclass clazz = android::FindClassOrDie(env, "android/graphics/Camera");
-    gNativeInstanceFieldID = android::GetFieldIDOrDie(env, clazz, "native_instance", "J");
-    return android::RegisterMethodsOrDie(env, "android/graphics/Camera", gCameraMethods,
-                                         NELEM(gCameraMethods));
+    jclass clazz = env->FindClass("android/graphics/Camera");
+    if (clazz == 0) {
+        return -1;
+    }
+    gNativeInstanceFieldID = env->GetFieldID(clazz, "native_instance", "J");
+    if (gNativeInstanceFieldID == 0) {
+        return -1;
+    }
+    return android::AndroidRuntime::registerNativeMethods(env,
+                                               "android/graphics/Camera",
+                                               gCameraMethods,
+                                               SK_ARRAY_COUNT(gCameraMethods));
 }

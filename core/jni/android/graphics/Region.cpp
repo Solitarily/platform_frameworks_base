@@ -23,7 +23,7 @@
 #include "android_util_Binder.h"
 
 #include <jni.h>
-#include <core_jni_helpers.h>
+#include <android_runtime/AndroidRuntime.h>
 
 namespace android {
 
@@ -325,13 +325,19 @@ static JNINativeMethod gRegionMethods[] = {
 
 int register_android_graphics_Region(JNIEnv* env)
 {
-    jclass clazz = FindClassOrDie(env, "android/graphics/Region");
+    jclass clazz = env->FindClass("android/graphics/Region");
+    SkASSERT(clazz);
 
-    gRegion_nativeInstanceFieldID = GetFieldIDOrDie(env, clazz, "mNativeRegion", "J");
+    gRegion_nativeInstanceFieldID = env->GetFieldID(clazz, "mNativeRegion", "J");
+    SkASSERT(gRegion_nativeInstanceFieldID);
 
-    RegisterMethodsOrDie(env, "android/graphics/Region", gRegionMethods, NELEM(gRegionMethods));
-    return RegisterMethodsOrDie(env, "android/graphics/RegionIterator", gRegionIterMethods,
-                                NELEM(gRegionIterMethods));
+    int result = android::AndroidRuntime::registerNativeMethods(env, "android/graphics/Region",
+                                                             gRegionMethods, SK_ARRAY_COUNT(gRegionMethods));
+    if (result < 0)
+        return result;
+
+    return android::AndroidRuntime::registerNativeMethods(env, "android/graphics/RegionIterator",
+                                                       gRegionIterMethods, SK_ARRAY_COUNT(gRegionIterMethods));
 }
 
 SkRegion* android_graphics_Region_getSkRegion(JNIEnv* env, jobject regionObj) {

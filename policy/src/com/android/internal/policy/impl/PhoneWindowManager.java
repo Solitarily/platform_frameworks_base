@@ -1190,8 +1190,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         int shortSizeDp = shortSize * DisplayMetrics.DENSITY_DEFAULT / density;
         int longSizeDp = longSize * DisplayMetrics.DENSITY_DEFAULT / density;
 
-        // Allow the navigation bar to move on non-square small devices (phones).
-        mNavigationBarCanMove = width != height && shortSizeDp < 600;
+        // Allow the navigation bar to move on small devices (phones).
+        mNavigationBarCanMove = shortSizeDp < 600;
 
         mHasNavigationBar = res.getBoolean(com.android.internal.R.bool.config_showNavigationBar);
         // Allow a system property to override this. Used by the emulator.
@@ -3909,7 +3909,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 topIsFullscreen = (fl & WindowManager.LayoutParams.FLAG_FULLSCREEN) != 0
                         || (mLastSystemUiFlags & View.SYSTEM_UI_FLAG_FULLSCREEN) != 0;
                 // The subtle difference between the window for mTopFullscreenOpaqueWindowState
-                // and mTopIsFullscreen is that mTopIsFullscreen is set only if the window
+                // and mTopIsFullscreen is that that mTopIsFullscreen is set only if the window
                 // has the FLAG_FULLSCREEN set.  Not sure if there is another way that to be the
                 // case though.
                 if (mStatusBarController.isTransientShowing()) {
@@ -4389,7 +4389,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 result &= ~ACTION_PASS_TO_USER;
                 if (down) {
                     boolean panic = mImmersiveModeConfirmation.onPowerKeyDown(interactive,
-                            SystemClock.elapsedRealtime(), isImmersiveMode(mLastSystemUiFlags));
+                            event.getDownTime(), isImmersiveMode(mLastSystemUiFlags));
                     if (panic) {
                         mHandler.post(mRequestTransientNav);
                     }
@@ -5797,7 +5797,6 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         if (denyTransientStatus || denyTransientNav) {
             // clear the clearable flags instead
             clearClearableFlagsLw();
-            vis &= ~View.SYSTEM_UI_CLEARABLE_FLAGS;
         }
 
         vis = mStatusBarController.updateVisibilityLw(transientStatusBarAllowed, oldVis, vis);

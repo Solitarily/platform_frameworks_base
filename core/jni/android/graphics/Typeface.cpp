@@ -15,7 +15,7 @@
  */
 
 #include "jni.h"
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 #include "GraphicsJNI.h"
 #include <ScopedPrimitiveArray.h>
@@ -81,6 +81,8 @@ static JNINativeMethod gTypefaceMethods[] = {
 
 int register_android_graphics_Typeface(JNIEnv* env)
 {
-    return RegisterMethodsOrDie(env, "android/graphics/Typeface", gTypefaceMethods,
-                                NELEM(gTypefaceMethods));
+    return android::AndroidRuntime::registerNativeMethods(env,
+                                                       "android/graphics/Typeface",
+                                                       gTypefaceMethods,
+                                                       SK_ARRAY_COUNT(gTypefaceMethods));
 }

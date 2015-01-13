@@ -1,5 +1,5 @@
-#ifndef _ANDROID_GRAPHICS_BITMAP_FACTORY_H_
-#define _ANDROID_GRAPHICS_BITMAP_FACTORY_H_
+#ifndef BitmapFactory_DEFINE
+#define BitmapFactory_DEFINE
 
 #include "GraphicsJNI.h"
 
@@ -21,4 +21,4 @@ extern jfieldID gOptions_bitmapFieldID;
 
 jstring getMimeTypeString(JNIEnv* env, SkImageDecoder::Format format);
 
-#endif  // _ANDROID_GRAPHICS_BITMAP_FACTORY_H_
+#endif

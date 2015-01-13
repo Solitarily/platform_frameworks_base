@@ -24,7 +24,7 @@
 #include "GraphicsJNI.h"
 #include "Paint.h"
 #include "SkLayerRasterizer.h"
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 // Rasterizer.java holds a pointer (jlong) to this guy
 class NativeRasterizer {
@@ -59,6 +59,7 @@ public:
     static void finalizer(JNIEnv* env, jobject clazz, jlong objHandle) {
         delete reinterpret_cast<NativeRasterizer *>(objHandle);
     }
+ 
 };
 
 static JNINativeMethod gRasterizerMethods[] = {
@@ -66,8 +67,9 @@ static JNINativeMethod gRasterizerMethods[] = {
 };
 
 int register_android_graphics_Rasterizer(JNIEnv* env) {
-    return RegisterMethodsOrDie(env, "android/graphics/Rasterizer", gRasterizerMethods,
-                                NELEM(gRasterizerMethods));
+    int result = AndroidRuntime::registerNativeMethods(env, "android/graphics/Rasterizer", gRasterizerMethods,
+        sizeof(gRasterizerMethods) / sizeof(gRasterizerMethods[0]));
+    return result;
 }
 
 class SkLayerRasterizerGlue {
@@ -92,8 +94,10 @@ static JNINativeMethod gLayerRasterizerMethods[] = {
 
 int register_android_graphics_LayerRasterizer(JNIEnv* env)
 {
-    return RegisterMethodsOrDie(env, "android/graphics/LayerRasterizer",
-                                gLayerRasterizerMethods, NELEM(gLayerRasterizerMethods));
+    return android::AndroidRuntime::registerNativeMethods(env,
+                                                       "android/graphics/LayerRasterizer",
+                                                       gLayerRasterizerMethods,
+                                                       SK_ARRAY_COUNT(gLayerRasterizerMethods));
 }
 
 }

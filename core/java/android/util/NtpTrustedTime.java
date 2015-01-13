@@ -22,7 +22,6 @@ import android.content.res.Resources;
 import android.net.SntpClient;
 import android.os.SystemClock;
 import android.provider.Settings;
-import android.text.TextUtils;
 
 /**
  * {@link TrustedTime} that connects with a remote NTP server as its trusted
@@ -74,7 +73,7 @@ public class NtpTrustedTime implements TrustedTime {
 
     @Override
     public boolean forceRefresh() {
-        if (TextUtils.isEmpty(mServer)) {
+        if (mServer == null) {
             // missing server, so no trusted time available
             return false;
         }

@@ -26,7 +26,6 @@
 
 #include <ScopedUtfChars.h>
 
-#include "core_jni_helpers.h"
 
 namespace android {
 
@@ -243,18 +242,31 @@ static JNINativeMethod gVelocityTrackerMethods[] = {
             (void*)android_view_VelocityTracker_nativeGetEstimator },
 };
 
+#define FIND_CLASS(var, className) \
+        var = env->FindClass(className); \
+        LOG_FATAL_IF(! var, "Unable to find class " className);
+
+#define GET_FIELD_ID(var, clazz, fieldName, fieldDescriptor) \
+        var = env->GetFieldID(clazz, fieldName, fieldDescriptor); \
+        LOG_FATAL_IF(! var, "Unable to find field " fieldName);
+
 int register_android_view_VelocityTracker(JNIEnv* env) {
-    int res = RegisterMethodsOrDie(env, "android/view/VelocityTracker", gVelocityTrackerMethods,
-                                   NELEM(gVelocityTrackerMethods));
+    int res = jniRegisterNativeMethods(env, "android/view/VelocityTracker",
+            gVelocityTrackerMethods, NELEM(gVelocityTrackerMethods));
+    LOG_FATAL_IF(res < 0, "Unable to register native methods.");
 
-    jclass clazz = FindClassOrDie(env, "android/view/VelocityTracker$Estimator");
+    jclass clazz;
+    FIND_CLASS(clazz, "android/view/VelocityTracker$Estimator");
 
-    gEstimatorClassInfo.xCoeff = GetFieldIDOrDie(env, clazz, "xCoeff", "[F");
-    gEstimatorClassInfo.yCoeff = GetFieldIDOrDie(env, clazz, "yCoeff", "[F");
-    gEstimatorClassInfo.degree = GetFieldIDOrDie(env, clazz, "degree", "I");
-    gEstimatorClassInfo.confidence = GetFieldIDOrDie(env, clazz, "confidence", "F");
-
-    return res;
+    GET_FIELD_ID(gEstimatorClassInfo.xCoeff, clazz,
+            "xCoeff", "[F");
+    GET_FIELD_ID(gEstimatorClassInfo.yCoeff, clazz,
+            "yCoeff", "[F");
+    GET_FIELD_ID(gEstimatorClassInfo.degree, clazz,
+            "degree", "I");
+    GET_FIELD_ID(gEstimatorClassInfo.confidence, clazz,
+            "confidence", "F");
+    return 0;
 }
 
 } // namespace android

@@ -24,7 +24,6 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
-#include "core_jni_helpers.h"
 
 #define VERSION_1_HEADER 0x01706c48  // 'Hlp'1 little endian
 
@@ -228,12 +227,18 @@ static const JNINativeMethod g_methods[] = {
 
 int register_android_backup_BackupHelperDispatcher(JNIEnv* env)
 {
-    jclass clazz = FindClassOrDie(env, "android/app/backup/BackupHelperDispatcher$Header");
-    s_chunkSizeField = GetFieldIDOrDie(env, clazz, "chunkSize", "I");
-    s_keyPrefixField = GetFieldIDOrDie(env, clazz, "keyPrefix", "Ljava/lang/String;");
+    jclass clazz = env->FindClass("android/app/backup/BackupHelperDispatcher$Header");
+    LOG_FATAL_IF(clazz == NULL,
+            "Unable to find class android.app.backup.BackupHelperDispatcher.Header");
+    s_chunkSizeField = env->GetFieldID(clazz, "chunkSize", "I");
+    LOG_FATAL_IF(s_chunkSizeField == NULL,
+            "Unable to find chunkSize field in android.app.backup.BackupHelperDispatcher.Header");
+    s_keyPrefixField = env->GetFieldID(clazz, "keyPrefix", "Ljava/lang/String;");
+    LOG_FATAL_IF(s_keyPrefixField == NULL,
+            "Unable to find keyPrefix field in android.app.backup.BackupHelperDispatcher.Header");
 
-    return RegisterMethodsOrDie(env, "android/app/backup/BackupHelperDispatcher", g_methods,
-                                NELEM(g_methods));
+    return AndroidRuntime::registerNativeMethods(env, "android/app/backup/BackupHelperDispatcher",
+            g_methods, NELEM(g_methods));
 }
 
 }

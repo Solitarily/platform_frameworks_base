@@ -17,7 +17,7 @@
 #define LOG_TAG "NativeLibraryHelper"
 //#define LOG_NDEBUG 0
 
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 #include <ScopedUtfChars.h>
 #include <UniquePtr.h>
@@ -117,7 +117,7 @@ isFileDifferent(const char* filePath, size_t fileSize, time_t modifiedTime,
         return true;
     }
 
-    if (static_cast<uint64_t>(st->st_size) != static_cast<uint64_t>(fileSize)) {
+    if (st->st_size != fileSize) {
         return true;
     }
 
@@ -430,6 +430,7 @@ static int findSupportedAbi(JNIEnv *env, jlong apkHandle, jobjectArray supported
     }
 
     ZipEntryRO entry = NULL;
+    char fileName[PATH_MAX];
     int status = NO_NATIVE_LIBRARIES;
     while ((entry = it->next()) != NULL) {
         // We're currently in the lib/ directory of the APK, so it does have some native
@@ -563,8 +564,8 @@ static JNINativeMethod gMethods[] = {
 
 int register_com_android_internal_content_NativeLibraryHelper(JNIEnv *env)
 {
-    return RegisterMethodsOrDie(env,
-            "com/android/internal/content/NativeLibraryHelper", gMethods, NELEM(gMethods));
+    return AndroidRuntime::registerNativeMethods(env,
+                "com/android/internal/content/NativeLibraryHelper", gMethods, NELEM(gMethods));
 }
 
 };

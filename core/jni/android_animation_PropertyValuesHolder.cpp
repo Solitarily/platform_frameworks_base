@@ -18,7 +18,7 @@
 #include <assert.h>
 
 #include "jni.h"
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 #include <utils/misc.h>
 
 // ----------------------------------------------------------------------------
@@ -168,7 +168,8 @@ static JNINativeMethod gMethods[] = {
 
 int register_android_animation_PropertyValuesHolder(JNIEnv* env)
 {
-    return RegisterMethodsOrDie(env, kClassPathName, gMethods, NELEM(gMethods));
+    return AndroidRuntime::registerNativeMethods(env,
+            kClassPathName, gMethods, NELEM(gMethods));
 }
 
 };

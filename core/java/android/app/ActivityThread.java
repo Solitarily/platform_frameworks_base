@@ -359,7 +359,7 @@ public final class ActivityThread {
         public ReceiverData(Intent intent, int resultCode, String resultData, Bundle resultExtras,
                 boolean ordered, boolean sticky, IBinder token, int sendingUser) {
             super(resultCode, resultData, resultExtras, TYPE_COMPONENT, ordered, sticky,
-                    token, sendingUser, intent.getFlags());
+                    token, sendingUser);
             this.intent = intent;
         }
 
@@ -1943,7 +1943,7 @@ public final class ActivityThread {
         if (dumpFullInfo) {
             printRow(pw, HEAP_FULL_COLUMN, "", "Pss", "Pss", "Shared", "Private",
                     "Shared", "Private", "Swapped", "Heap", "Heap", "Heap");
-            printRow(pw, HEAP_FULL_COLUMN, "", "Total", "Clean", "Dirty", "Dirty",
+            printRow(pw, HEAP_FULL_COLUMN, "", "Total", "Clean", "Dirty", "",
                     "Clean", "Clean", "Dirty", "Size", "Alloc", "Free");
             printRow(pw, HEAP_FULL_COLUMN, "", "------", "------", "------", "------",
                     "------", "------", "------", "------", "------", "------");
@@ -4161,24 +4161,22 @@ public final class ActivityThread {
     final void handleDispatchPackageBroadcast(int cmd, String[] packages) {
         boolean hasPkgInfo = false;
         if (packages != null) {
-            synchronized (mResourcesManager) {
-                for (int i=packages.length-1; i>=0; i--) {
-                    //Slog.i(TAG, "Cleaning old package: " + packages[i]);
-                    if (!hasPkgInfo) {
-                        WeakReference<LoadedApk> ref;
-                        ref = mPackages.get(packages[i]);
+            for (int i=packages.length-1; i>=0; i--) {
+                //Slog.i(TAG, "Cleaning old package: " + packages[i]);
+                if (!hasPkgInfo) {
+                    WeakReference<LoadedApk> ref;
+                    ref = mPackages.get(packages[i]);
+                    if (ref != null && ref.get() != null) {
+                        hasPkgInfo = true;
+                    } else {
+                        ref = mResourcePackages.get(packages[i]);
                         if (ref != null && ref.get() != null) {
                             hasPkgInfo = true;
-                        } else {
-                            ref = mResourcePackages.get(packages[i]);
-                            if (ref != null && ref.get() != null) {
-                                hasPkgInfo = true;
-                            }
                         }
                     }
-                    mPackages.remove(packages[i]);
-                    mResourcePackages.remove(packages[i]);
                 }
+                mPackages.remove(packages[i]);
+                mResourcePackages.remove(packages[i]);
             }
         }
         ApplicationPackageManager.handlePackageBroadcast(cmd, packages,
@@ -4481,10 +4479,6 @@ public final class ActivityThread {
 
         if ((data.appInfo.flags&ApplicationInfo.FLAG_LARGE_HEAP) != 0) {
             dalvik.system.VMRuntime.getRuntime().clearGrowthLimit();
-        } else {
-            // Small heap, clamp to the current growth limit and let the heap release
-            // pages after the growth limit to the non growth limit capacity. b/18387825
-            dalvik.system.VMRuntime.getRuntime().clampGrowthLimit();
         }
 
         // Allow disk access during application and provider setup. This could

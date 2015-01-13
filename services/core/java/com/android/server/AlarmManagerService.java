@@ -787,7 +787,7 @@ class AlarmManagerService extends SystemService {
             }
 
             setImpl(type, triggerAtTime, windowLength, interval, operation,
-                    false, workSource, alarmClock);
+                    windowLength == AlarmManager.WINDOW_EXACT, workSource, alarmClock);
         }
 
         @Override
@@ -1425,12 +1425,9 @@ class AlarmManagerService extends SystemService {
                             maxTriggerTime(nowELAPSED, nextElapsed, alarm.repeatInterval),
                             alarm.repeatInterval, alarm.operation, batch.standalone, true,
                             alarm.workSource, alarm.alarmClock, alarm.userId);
+                }
 
-                    // For now we count this as a wakeup alarm, meaning it needs to be
-                    // delivered immediately.  In the future we should change this, but
-                    // that required delaying when we reschedule the repeat...!
-                    hasWakeup = false;
-                } else if (alarm.wakeup) {
+                if (alarm.wakeup) {
                     hasWakeup = true;
                 }
 
@@ -1587,7 +1584,7 @@ class AlarmManagerService extends SystemService {
         if (mLastAlarmDeliveryTime <= 0) {
             return false;
         }
-        if (mPendingNonWakeupAlarms.size() > 0 && mNextNonWakeupDeliveryTime < nowELAPSED) {
+        if (mPendingNonWakeupAlarms.size() > 0 && mNextNonWakeupDeliveryTime > nowELAPSED) {
             // This is just a little paranoia, if somehow we have pending non-wakeup alarms
             // and the next delivery time is in the past, then just deliver them all.  This
             // avoids bugs where we get stuck in a loop trying to poll for alarms.

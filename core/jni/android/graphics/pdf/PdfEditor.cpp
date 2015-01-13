@@ -20,7 +20,7 @@
 #include "fpdfedit.h"
 #include "fpdfsave.h"
 
-#include <core_jni_helpers.h>
+#include <android_runtime/AndroidRuntime.h>
 #include <vector>
 #include <utils/Log.h>
 #include <unistd.h>
@@ -72,8 +72,8 @@ static jlong nativeOpen(JNIEnv* env, jclass thiz, jint fd, jlong size) {
 
     if (!document) {
         const long error = FPDF_GetLastError();
-        jniThrowExceptionFmt(env, "java/io/IOException",
-                "cannot create document. Error: %ld", error);
+        jniThrowException(env, "java/io/IOException",
+                "cannot create document. Error:" + error);
         destroyLibraryIfNeeded();
         return -1;
     }
@@ -124,7 +124,7 @@ static bool writeAllBytes(const int fd, const void* buffer, const size_t byteCou
 static int writeBlock(FPDF_FILEWRITE* owner, const void* buffer, unsigned long size) {
     const PdfToFdWriter* writer = reinterpret_cast<PdfToFdWriter*>(owner);
     const bool success = writeAllBytes(writer->dstFd, buffer, size);
-    if (!success) {
+    if (success < 0) {
         ALOGE("Cannot write to file descriptor. Error:%d", errno);
         return 0;
     }
@@ -138,8 +138,8 @@ static void nativeWrite(JNIEnv* env, jclass thiz, jlong documentPtr, jint fd) {
     writer.WriteBlock = &writeBlock;
     const bool success = FPDF_SaveAsCopy(document, &writer, FPDF_NO_INCREMENTAL);
     if (!success) {
-        jniThrowExceptionFmt(env, "java/io/IOException",
-                "cannot write to fd. Error: %d", errno);
+        jniThrowException(env, "java/io/IOException",
+                "cannot write to fd. Error:" + errno);
         destroyLibraryIfNeeded();
     }
 }
@@ -153,7 +153,7 @@ static JNINativeMethod gPdfEditor_Methods[] = {
 };
 
 int register_android_graphics_pdf_PdfEditor(JNIEnv* env) {
-    return android::RegisterMethodsOrDie(
+    return android::AndroidRuntime::registerNativeMethods(
             env, "android/graphics/pdf/PdfEditor", gPdfEditor_Methods,
             NELEM(gPdfEditor_Methods));
 };

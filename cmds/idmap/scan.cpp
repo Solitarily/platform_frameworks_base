@@ -64,6 +64,30 @@ namespace {
         return String8(tmp);
     }
 
+    int mkdir_p(const String8& path, uid_t uid, gid_t gid)
+    {
+        static const mode_t mode =
+            S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IXOTH;
+        struct stat st;
+
+        if (stat(path.string(), &st) == 0) {
+            return 0;
+        }
+        if (mkdir_p(path.getPathDir(), uid, gid) < 0) {
+            return -1;
+        }
+        if (mkdir(path.string(), 0755) != 0) {
+            return -1;
+        }
+        if (chown(path.string(), uid, gid) == -1) {
+            return -1;
+        }
+        if (chmod(path.string(), mode) == -1) {
+            return -1;
+        }
+        return 0;
+    }
+
     int parse_overlay_tag(const ResXMLTree& parser, const char *target_package_name)
     {
         const size_t N = parser.getAttributeCount();
@@ -73,8 +97,8 @@ namespace {
             size_t len;
             String16 key(parser.getAttributeName(i, &len));
             if (key == String16("targetPackage")) {
-                const char16_t *p = parser.getAttributeStringValue(i, &len);
-                if (p != NULL) {
+                const uint16_t *p = parser.getAttributeStringValue(i, &len);
+                if (p) {
                     target = String16(p, len);
                 }
             } else if (key == String16("priority")) {
@@ -140,19 +164,19 @@ namespace {
             return -1;
         }
         FileMap *dataMap = zip->createEntryFileMap(entry);
-        if (dataMap == NULL) {
+        if (!dataMap) {
             ALOGW("%s: failed to create FileMap\n", __FUNCTION__);
             return -1;
         }
         char *buf = new char[uncompLen];
         if (NULL == buf) {
-            ALOGW("%s: failed to allocate %zd byte\n", __FUNCTION__, uncompLen);
+            ALOGW("%s: failed to allocate %d byte\n", __FUNCTION__, uncompLen);
             dataMap->release();
             return -1;
         }
         StreamingZipInflater inflater(dataMap, uncompLen);
         if (inflater.read(buf, uncompLen) < 0) {
-            ALOGW("%s: failed to inflate %zd byte\n", __FUNCTION__, uncompLen);
+            ALOGW("%s: failed to inflate %d byte\n", __FUNCTION__, uncompLen);
             delete[] buf;
             dataMap->release();
             return -1;

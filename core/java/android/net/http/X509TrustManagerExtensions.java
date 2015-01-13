@@ -36,7 +36,7 @@ import javax.net.ssl.X509TrustManager;
  */
 public class X509TrustManagerExtensions {
 
-    final TrustManagerImpl mDelegate;
+    TrustManagerImpl mDelegate;
 
     /**
      * Constructs a new X509TrustManagerExtensions wrapper.
@@ -48,7 +48,6 @@ public class X509TrustManagerExtensions {
         if (tm instanceof TrustManagerImpl) {
             mDelegate = (TrustManagerImpl) tm;
         } else {
-            mDelegate = null;
             throw new IllegalArgumentException("tm is an instance of " + tm.getClass().getName() +
                     " which is not a supported type of X509TrustManager");
         }

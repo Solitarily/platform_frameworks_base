@@ -33,8 +33,6 @@
 #include "android_view_KeyEvent.h"
 #include "android_view_MotionEvent.h"
 
-#include "core_jni_helpers.h"
-
 namespace android {
 
 static struct {
@@ -258,13 +256,27 @@ static const JNINativeMethod g_methods[] = {
 
 static const char* const kInputQueuePathName = "android/view/InputQueue";
 
+#define FIND_CLASS(var, className) \
+        do { \
+        var = env->FindClass(className); \
+        LOG_FATAL_IF(! var, "Unable to find class %s", className); \
+        } while(0)
+
+#define GET_METHOD_ID(var, clazz, methodName, fieldDescriptor) \
+        do { \
+        var = env->GetMethodID(clazz, methodName, fieldDescriptor); \
+        LOG_FATAL_IF(! var, "Unable to find method" methodName); \
+        } while(0)
+
 int register_android_view_InputQueue(JNIEnv* env)
 {
-    jclass clazz = FindClassOrDie(env, kInputQueuePathName);
-    gInputQueueClassInfo.finishInputEvent = GetMethodIDOrDie(env, clazz, "finishInputEvent",
-                                                             "(JZ)V");
+    jclass clazz;
+    FIND_CLASS(clazz, kInputQueuePathName);
+    GET_METHOD_ID(gInputQueueClassInfo.finishInputEvent, clazz, "finishInputEvent", "(JZ)V");
 
-    return RegisterMethodsOrDie(env, kInputQueuePathName, g_methods, NELEM(g_methods));
+    return AndroidRuntime::registerNativeMethods(
+        env, kInputQueuePathName,
+        g_methods, NELEM(g_methods));
 }
 
 } // namespace android

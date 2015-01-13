@@ -24,7 +24,7 @@
 
 #include <jni.h>
 #include <JNIHelp.h>
-#include "core_jni_helpers.h"
+#include <android_runtime/AndroidRuntime.h>
 
 #include <utils/Log.h>
 #include <media/JetPlayer.h>
@@ -517,22 +517,36 @@ static JNINativeMethod gMethods[] = {
 
 int register_android_media_JetPlayer(JNIEnv *env)
 {
+    jclass jetPlayerClass = NULL;
     javaJetPlayerFields.jetClass = NULL;
     javaJetPlayerFields.postNativeEventInJava = NULL;
     javaJetPlayerFields.nativePlayerInJavaObj = NULL;
 
     // Get the JetPlayer java class
-    jclass jetPlayerClass = FindClassOrDie(env, kClassPathName);
-    javaJetPlayerFields.jetClass = MakeGlobalRefOrDie(env, jetPlayerClass);
+    jetPlayerClass = env->FindClass(kClassPathName);
+    if (jetPlayerClass == NULL) {
+        ALOGE("Can't find %s", kClassPathName);
+        return -1;
+    }
+    javaJetPlayerFields.jetClass = (jclass)env->NewGlobalRef(jetPlayerClass);
 
     // Get the mNativePlayerInJavaObj variable field
-    javaJetPlayerFields.nativePlayerInJavaObj = GetFieldIDOrDie(env,
-            jetPlayerClass, JAVA_NATIVEJETPLAYERINJAVAOBJ_FIELD_NAME, "J");
+    javaJetPlayerFields.nativePlayerInJavaObj = env->GetFieldID(
+            jetPlayerClass,
+            JAVA_NATIVEJETPLAYERINJAVAOBJ_FIELD_NAME, "J");
+    if (javaJetPlayerFields.nativePlayerInJavaObj == NULL) {
+        ALOGE("Can't find JetPlayer.%s", JAVA_NATIVEJETPLAYERINJAVAOBJ_FIELD_NAME);
+        return -1;
+    }
 
     // Get the callback to post events from this native code to Java
-    javaJetPlayerFields.postNativeEventInJava = GetStaticMethodIDOrDie(env,
-            javaJetPlayerFields.jetClass, JAVA_NATIVEJETPOSTEVENT_CALLBACK_NAME,
-            "(Ljava/lang/Object;III)V");
+    javaJetPlayerFields.postNativeEventInJava = env->GetStaticMethodID(javaJetPlayerFields.jetClass,
+            JAVA_NATIVEJETPOSTEVENT_CALLBACK_NAME, "(Ljava/lang/Object;III)V");
+    if (javaJetPlayerFields.postNativeEventInJava == NULL) {
+        ALOGE("Can't find Jet.%s", JAVA_NATIVEJETPOSTEVENT_CALLBACK_NAME);
+        return -1;
+    }
 
-    return RegisterMethodsOrDie(env, kClassPathName, gMethods, NELEM(gMethods));
+    return AndroidRuntime::registerNativeMethods(env,
+            kClassPathName, gMethods, NELEM(gMethods));
 }

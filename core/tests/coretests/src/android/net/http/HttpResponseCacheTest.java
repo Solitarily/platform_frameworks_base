@@ -19,7 +19,6 @@ package android.net.http;
 import com.google.mockwebserver.MockResponse;
 import com.google.mockwebserver.MockWebServer;
 import java.io.File;
-import java.io.InputStream;
 import java.net.CacheRequest;
 import java.net.CacheResponse;
 import java.net.ResponseCache;
@@ -119,10 +118,7 @@ public final class HttpResponseCacheTest extends TestCase {
         server.play();
 
         URLConnection c1 = server.getUrl("/").openConnection();
-        InputStream inputStream1 = c1.getInputStream();
-        assertEquals('A', inputStream1.read());
-        inputStream1.close();
-
+        assertEquals('A', c1.getInputStream().read());
         assertEquals(1, cache.getRequestCount());
         assertEquals(1, cache.getNetworkCount());
         assertEquals(0, cache.getHitCount());

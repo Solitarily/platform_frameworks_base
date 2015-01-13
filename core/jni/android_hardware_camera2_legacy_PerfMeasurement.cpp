@@ -22,7 +22,7 @@
 
 #include "jni.h"
 #include "JNIHelp.h"
-#include "core_jni_helpers.h"
+#include "android_runtime/AndroidRuntime.h"
 
 #include <ui/GraphicBuffer.h>
 #include <system/window.h>
@@ -328,7 +328,7 @@ static JNINativeMethod gPerfMeasurementMethods[] = {
 int register_android_hardware_camera2_legacy_PerfMeasurement(JNIEnv* env)
 {
     // Register native functions
-    return RegisterMethodsOrDie(env,
+    return AndroidRuntime::registerNativeMethods(env,
             PERF_MEASUREMENT_CLASS_NAME,
             gPerfMeasurementMethods,
             NELEM(gPerfMeasurementMethods));

@@ -133,8 +133,12 @@ int AudioTrackTest::Test01() {
 ************************************************************/
 void AudioTrackTest::Generate(short *buffer, long bufferSz, long amplitude, unsigned long &phi, long dPhi)
 {
+    long pi13 = 25736;   // 2^13*pi
     // fill buffer
     for(int i0=0; i0<bufferSz; i0++) {
+        long sample;
+        long l0, l1;
+
         buffer[i0] = ComputeSine( amplitude, phi);
         phi += dPhi;
     }
@@ -206,7 +210,7 @@ int main() {
 *    global main
 *
 ************************************************************/
-int main() {
+int main(int argc, char *argv[]) {
 
     return android::main();
 }
